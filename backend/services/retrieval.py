@@ -74,7 +74,37 @@ INTENTI = {
     "alcol": ["alcol", "alcool", "alcolismo"],
 }
 
+# Intenti che si riconoscono da frasi presenti nel corpo del blocco, non dal
+# titolo. Esempio: "posso darlo a un parente?" -> il foglio usa la frase
+# "Non lo dia ad altre persone".
+INTENTI_TESTO = {
+    "condivisione": {
+        "query": [
+            "parente",
+            "familiare",
+            "amico",
+            "amica",
+            "altra persona",
+            "altre persone",
+            "condividere",
+            "prestare",
+            "stesso problema",
+            "sintomi uguali",
+            "stessa malattia",
+            "darlo a",
+            "dargli",
+            "darle",
+        ],
+        "frasi": [
+            "non lo dia ad altre persone",
+            "soltanto per lei",
+            "sintomi della malattia sono uguali",
+        ],
+    },
+}
+
 BOOST_INTENTO = 4.0
+BOOST_FRASE = 10.0
 
 _blocchi_cache: list[dict[str, Any]] | None = None
 
@@ -108,6 +138,15 @@ def _intenti(query: str) -> list[str]:
     ]
 
 
+def _intenti_testo(query: str) -> list[str]:
+    query_lower = query.lower()
+    return [
+        intento
+        for intento, configurazione in INTENTI_TESTO.items()
+        if any(chiave in query_lower for chiave in configurazione["query"])
+    ]
+
+
 def _score(
     query: str,
     termini: list[str],
@@ -117,7 +156,9 @@ def _score(
     if not blocchi:
         return []
 
-    intenti = _intenti(query_intento or query)
+    query_riferimento = query_intento or query
+    intenti = _intenti(query_riferimento)
+    intenti_testo = _intenti_testo(query_riferimento)
     n_docs = len(blocchi)
     idf: dict[str, float] = {}
     for termine in termini:
@@ -147,6 +188,12 @@ def _score(
                         punteggio += 2.0
                     if "non prenda" in etichetta:
                         punteggio += 1.0
+
+        if intenti_testo:
+            for intento in intenti_testo:
+                frasi = INTENTI_TESTO[intento]["frasi"]
+                if any(frase in testo_lower for frase in frasi):
+                    punteggio += BOOST_FRASE
 
         if punteggio > 0:
             scored.append((punteggio, blocco))

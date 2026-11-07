@@ -37,3 +37,14 @@ def test_i_blocchi_non_contengono_il_footer_legale():
     assert risultati
     for risultato in risultati:
         assert "Agenzia non può essere ritenuta responsabile" not in risultato["testo"]
+
+
+def test_intento_condivisione_trova_il_blocco_giusto():
+    risultati = cerca(
+        "Posso dare il farmaco ad un mio parente che soffre lo stesso problema?",
+        "plasil",
+        limite=3,
+    )
+    assert risultati
+    assert risultati[0]["blocco_id"] == "plasil_sec0"
+    assert "Non lo dia ad altre persone" in risultati[0]["testo"]

@@ -433,10 +433,17 @@ della demo originale; dove c'è divergenza, vale questa sezione.
 - Le fonti prodotte dal modello vengono validate contro i blocchi: se lo
   span citato non è contenuto nel blocco, la fonte viene scartata e si usa
   quella del retrieval.
-- Il retrieval applica un boost per intento (gravidanza, bambini, dosaggio,
-  effetti indesiderati, alcol): per "sono incinta" privilegia i blocchi
-  "Gravidanza"/"trimestre" anche quando la domanda non contiene la parola
-  "gravidanza".
+- Il retrieval applica un boost per intento (gravidanza, allattamento,
+  bambini, dosaggio, effetti indesiderati, alcol): per "sono incinta"
+  privilegia i blocchi "Gravidanza"/"trimestre" anche quando la domanda non
+  contiene la parola "gravidanza".
+- Esiste anche un intento di **condivisione** ("posso darlo a un parente?"):
+  riconosce frasi come "Non lo dia ad altre persone" e "prescritto soltanto
+  per lei" nel corpo del blocco, non solo nel titolo.
+- Le citazioni vengono **affinate**: se il modello restituisce l'intero
+  blocco, viene scelta la frase più pertinente (con la frase adiacente solo
+  se condivide parole con domanda/risposta). Le fonti poco pertinenti
+  rispetto alla risposta vengono scartate.
 - I blocchi dell'indice vengono ripuliti dal footer legale AIFA, che non può
   quindi diventare una fonte citata.
 - Il contesto passa al modello anche il `blocco_id`. La chat mostra tutte le

@@ -1,4 +1,9 @@
-from services.citazioni import fonte_da_blocco, valida_fonte
+from services.citazioni import (
+    affina_span,
+    filtra_fonti,
+    fonte_da_blocco,
+    valida_fonte,
+)
 
 BLOCCO = {
     "blocco_id": "test_sec0",
@@ -30,3 +35,35 @@ def test_valida_fonte_rifiuta_span_inventato():
         [BLOCCO],
     )
     assert fonte is None
+
+
+def test_affina_span_restituisce_la_frase_pertinente():
+    blocco = (
+        "Foglio illustrativo: informazioni per il paziente\n\n"
+        "- Conservi questo foglio. Potrebbe aver bisogno di leggerlo di nuovo.\n"
+        "- Questo medicinale è stato prescritto soltanto per lei. "
+        "Non lo dia ad altre persone, anche se i sintomi della malattia sono "
+        "uguali ai suoi, perché potrebbe essere pericoloso.\n"
+        "- Se ha qualsiasi dubbio, si rivolga al medico."
+    )
+    span = affina_span(
+        blocco,
+        blocco,
+        query="Posso darlo a un mio parente con gli stessi sintomi?",
+        risposta="No, non deve darlo ad altre persone con gli stessi sintomi.",
+    )
+    assert "Non lo dia ad altre persone" in span
+    assert len(span) < len(blocco)
+
+
+def test_filtra_fonti_scarta_le_fonti_poco_pertinenti():
+    fonti = [
+        {
+            "testo_evidenziato": "Non lo dia ad altre persone con gli stessi sintomi.",
+        },
+        {
+            "testo_evidenziato": "Conservi il medicinale fuori dalla vista dei bambini.",
+        },
+    ]
+    filtrate = filtra_fonti(fonti, "Non deve darlo ad altre persone con gli stessi sintomi.")
+    assert filtrate == fonti[:1]

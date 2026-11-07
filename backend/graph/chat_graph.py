@@ -21,7 +21,7 @@ from langgraph.graph import END, StateGraph
 from app.farmaci import tieni_primo_foglio
 from app.json_utils import parse_json_object
 from app.llm import CHAT_MODEL, build_llm
-from services.citazioni import fonte_da_blocco, valida_fonte
+from services.citazioni import filtra_fonti, fonte_da_blocco, valida_fonte
 from tools.markdown_tool import carica_markdown, cerca_nel_markdown, cerca_testo
 
 logger = logging.getLogger(__name__)
@@ -92,6 +92,7 @@ Istruzioni:
 - Se il contesto è vuoto o non contiene la risposta, metti "informazione_trovata": false e spiega che l'informazione non è nel foglio.
 - Ogni informazione deve avere una fonte con blocco_id (se fornito nel contesto), documento, sezione, paragrafo e testo_evidenziato (span esatto citato).
 - Cita la frase più specifica del contesto che risponde alla domanda.
+- Riporta al massimo 2 fonti, solo quelle che contengono le informazioni citate nella risposta.
 - Ordina le fonti per importanza: la prima deve essere quella che contiene l'informazione principale della risposta.
 - Output solo JSON valido, niente testo prima o dopo."""
 
@@ -157,15 +158,25 @@ def _genera(
     for fonte_modello in parsed.get("fonti") or []:
         if not isinstance(fonte_modello, dict):
             continue
-        fonte = valida_fonte(fonte_modello, blocchi_fonte)
+        fonte = valida_fonte(
+            fonte_modello,
+            blocchi_fonte,
+            query=user_query,
+            risposta=testo_risposta,
+        )
         if fonte is not None:
             fonti.append(fonte)
 
     if not fonti and blocchi_fonte:
-        fonti = [fonte_da_blocco(blocco) for blocco in blocchi_fonte[:3]]
+        fonti = [
+            fonte_da_blocco(blocco, query=user_query, risposta=testo_risposta)
+            for blocco in blocchi_fonte[:3]
+        ]
 
     if not info_trovata:
         fonti = []
+    else:
+        fonti = filtra_fonti(fonti, testo_risposta)
 
     return {
         "risposta_finale": testo_risposta,
