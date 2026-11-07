@@ -7,9 +7,14 @@ import type { DocumentoResponse, FonteCitata } from "@/lib/api"
 interface OriginalDocumentProps {
   documento: DocumentoResponse | null
   fonte?: FonteCitata | null
+  focusNonce?: number
 }
 
-export function OriginalDocument({ documento, fonte }: OriginalDocumentProps) {
+export function OriginalDocument({
+  documento,
+  fonte,
+  focusNonce = 0,
+}: OriginalDocumentProps) {
   const bloccoAttivo = useMemo(() => {
     if (!documento || !fonte) return null
 
@@ -29,7 +34,7 @@ export function OriginalDocument({ documento, fonte }: OriginalDocumentProps) {
     if (!bloccoAttivo) return
     const elemento = document.getElementById(`blocco-${bloccoAttivo}`)
     elemento?.scrollIntoView({ behavior: "smooth", block: "center" })
-  }, [bloccoAttivo])
+  }, [bloccoAttivo, focusNonce])
 
   if (!documento) {
     return (

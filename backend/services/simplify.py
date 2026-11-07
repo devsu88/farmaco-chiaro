@@ -44,7 +44,11 @@ Non inventare informazioni. Se una sezione non c'è, indicalo.
 """
 
 SEZIONI_UTILI = ["indicazioni", "posologia", "controindicazioni", "avvertenze"]
-OCR_ARTIFACTS = {"Ita", "Ag", "rm", "Fa", "del", "enz", "lia", "na", "aco"}
+OCR_ARTIFACTS = {"Ita", "Ag", "rm", "Fa", "del", "enz", "lia", "na", "aco", "ia"}
+LEGAL_FOOTER_RE = re.compile(
+    r"medicinali e, pertanto, l[’']Agenzia non può essere ritenuta responsabile.*?\(o titolare AIC\)\.",
+    re.IGNORECASE | re.DOTALL,
+)
 
 ETR_MAX_FRASI = 7
 ETR_MAX_GLOSSARIO = 3
@@ -86,6 +90,7 @@ def _fallback(motivo: str) -> dict[str, Any]:
 
 
 def pulisci_testo(testo: str) -> str:
+    testo = LEGAL_FOOTER_RE.sub("", testo)
     righe = []
     for riga in testo.splitlines():
         stripped = riga.strip()

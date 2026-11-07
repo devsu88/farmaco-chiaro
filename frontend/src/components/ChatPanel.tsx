@@ -134,12 +134,19 @@ export function ChatPanel({
               {m.testo}
             </div>
             {m.ruolo === "assistente" && m.fonti && m.fonti.length > 0 && (
-              <button
-                onClick={() => onHighlightSource?.(m.fonti![0])}
-                className="text-[11px] text-blue-700 hover:underline"
-              >
-                Vai alla fonte nel foglio illustrativo
-              </button>
+              <div className="flex flex-col gap-1">
+                {m.fonti.map((fonte, indice) => (
+                  <button
+                    key={`${fonte.blocco_id ?? "fonte"}-${indice}`}
+                    onClick={() => onHighlightSource?.(fonte)}
+                    title={fonte.testo_evidenziato.slice(0, 160)}
+                    className="text-left text-[11px] text-blue-700 hover:underline"
+                  >
+                    Vai alla fonte {indice + 1}: {fonte.sezione}
+                    {fonte.paragrafo ? `, ${fonte.paragrafo}` : ""}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         ))}

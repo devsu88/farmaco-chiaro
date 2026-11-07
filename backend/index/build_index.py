@@ -32,11 +32,19 @@ FI_DIR = DATA_DIR / "markdown" / "FI"
 OUTPUT_FILE = INDEX_DIR / "blocchi.json"
 
 # Pulizia artefatti OCR ricorrenti nei markdown AIFA
-OCR_ARTIFACTS = {"Ita", "Ag", "rm", "Fa", "del", "enz", "lia", "na", "aco"}
+OCR_ARTIFACTS = {"Ita", "Ag", "rm", "Fa", "del", "enz", "lia", "na", "aco", "ia"}
+
+# Footer legale ripetuto in quasi tutti i blocchi: non è contenuto informativo
+# e non deve mai diventare una fonte citata.
+LEGAL_FOOTER_RE = re.compile(
+    r"medicinali e, pertanto, l[’']Agenzia non può essere ritenuta responsabile.*?\(o titolare AIC\)\.",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def clean_text(text: str) -> str:
-    """Rimuove artefatti OCR e spazi superflui."""
+    """Rimuove artefatti OCR, footer legali e spazi superflui."""
+    text = LEGAL_FOOTER_RE.sub("", text)
     lines = text.split("\n")
     cleaned_lines = []
     for line in lines:

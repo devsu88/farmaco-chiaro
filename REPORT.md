@@ -433,6 +433,15 @@ della demo originale; dove c'è divergenza, vale questa sezione.
 - Le fonti prodotte dal modello vengono validate contro i blocchi: se lo
   span citato non è contenuto nel blocco, la fonte viene scartata e si usa
   quella del retrieval.
+- Il retrieval applica un boost per intento (gravidanza, bambini, dosaggio,
+  effetti indesiderati, alcol): per "sono incinta" privilegia i blocchi
+  "Gravidanza"/"trimestre" anche quando la domanda non contiene la parola
+  "gravidanza".
+- I blocchi dell'indice vengono ripuliti dal footer legale AIFA, che non può
+  quindi diventare una fonte citata.
+- Il contesto passa al modello anche il `blocco_id`. La chat mostra tutte le
+  fonti con un pulsante "Vai alla fonte"; il click forza lo scroll e
+  l'evidenziazione anche se quella fonte è già attiva.
 - La semplificazione non tronca più silenziosamente a 6.000 caratteri:
   chunking con merge e pulizia degli artefatti OCR. Il risultato viene salvato
   in una **cache persistente su disco** in `backend/data/cache/simplify/`,

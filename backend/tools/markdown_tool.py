@@ -34,9 +34,19 @@ def carica_markdown(farmaco_id: str, tipo: str = "FI") -> dict[str, Any]:
     }
 
 
-def cerca_testo(query: str, farmaco_id: str, limite: int = 5) -> list[dict[str, Any]]:
+def cerca_testo(
+    query: str,
+    farmaco_id: str,
+    limite: int = 5,
+    query_intento: str | None = None,
+) -> list[dict[str, Any]]:
     """Ricerca BM25 sui blocchi indicizzati del farmaco."""
-    return retrieval.cerca(query, farmaco_id, limite=limite)
+    return retrieval.cerca(
+        query,
+        farmaco_id,
+        limite=limite,
+        query_intento=query_intento,
+    )
 
 
 def estrai_paragrafo(blocco_id: str) -> dict[str, Any] | None:

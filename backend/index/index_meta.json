@@ -1,8 +1,8 @@
 {
   "versione": 1,
-  "generato_il": "2026-11-07T09:53:43.714267+00:00",
+  "generato_il": "2026-11-07T11:16:04.380148+00:00",
   "farmaci": 5,
-  "blocchi": 92,
+  "blocchi": 91,
   "sorgenti": {
     "tachipirina_1000": "0ad3583d55305c04603a73de7bbb1a48ab54baf364710639ada3555dee1cbbce",
     "aspirina_500": "85a93c440127e8f955d61ada34bbec8f4e2dac774d7b3a6dac4515a12e8af635",

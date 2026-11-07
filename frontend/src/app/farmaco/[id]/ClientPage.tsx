@@ -38,6 +38,12 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   const [fonteEvidenziata, setFonteEvidenziata] = useState<FonteCitata | null>(
     null
   )
+  const [focusFonte, setFocusFonte] = useState(0)
+
+  const evidenziaFonte = useCallback((fonte: FonteCitata) => {
+    setFonteEvidenziata(fonte)
+    setFocusFonte((valore) => valore + 1)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -227,6 +233,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
             <OriginalDocument
               documento={documento}
               fonte={fonteEvidenziata}
+              focusNonce={focusFonte}
             />
           </div>
 
@@ -333,7 +340,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
               farmacoId={farmacoId}
               isOpen={chatOpen}
               onClose={() => setChatOpen(false)}
-              onHighlightSource={setFonteEvidenziata}
+              onHighlightSource={evidenziaFonte}
             />
           </div>
         </div>

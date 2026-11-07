@@ -28,6 +28,54 @@ STOPWORDS = {
     "quella", "cosa", "fare", "prendere", "medicinale", "farmaco",
 }
 
+# Boost per intenti frequenti: il testo della domanda può non contenere la
+# parola usata dal foglio (es. "incinta" vs "gravidanza"). In quel caso
+# premiamo i blocchi il cui titolo di sezione/paragrafo parla dell'argomento.
+INTENTI = {
+    "gravidanza": [
+        "incinta",
+        "gravidanza",
+        "trimestre",
+        "concepimento",
+    ],
+    "allattamento": [
+        "allattamento",
+        "allattando",
+        "fertilità",
+        "fertilita",
+    ],
+    "bambini": [
+        "bambino",
+        "bambini",
+        "bambina",
+        "pediatric",
+        "adolescent",
+        "anni",
+        "peso",
+        "kg",
+    ],
+    "dosaggio": [
+        "dose",
+        "dosaggio",
+        "quante",
+        "quanti",
+        "compressa",
+        "compresse",
+        "mg",
+        "ogni",
+        "ore",
+        "giorno",
+    ],
+    "effetti_indesiderati": [
+        "effetti indesiderati",
+        "reazioni avverse",
+        "effetto collaterale",
+    ],
+    "alcol": ["alcol", "alcool", "alcolismo"],
+}
+
+BOOST_INTENTO = 4.0
+
 _blocchi_cache: list[dict[str, Any]] | None = None
 
 
@@ -51,10 +99,25 @@ def tokenizza(query: str) -> list[str]:
     return termini or [query.lower()]
 
 
-def _score(query: str, termini: list[str], blocchi: list[dict[str, Any]]) -> list[tuple[float, dict[str, Any]]]:
+def _intenti(query: str) -> list[str]:
+    query_lower = query.lower()
+    return [
+        intento
+        for intento, chiavi in INTENTI.items()
+        if any(chiave in query_lower for chiave in chiavi)
+    ]
+
+
+def _score(
+    query: str,
+    termini: list[str],
+    blocchi: list[dict[str, Any]],
+    query_intento: str | None = None,
+) -> list[tuple[float, dict[str, Any]]]:
     if not blocchi:
         return []
 
+    intenti = _intenti(query_intento or query)
     n_docs = len(blocchi)
     idf: dict[str, float] = {}
     for termine in termini:
@@ -72,16 +135,38 @@ def _score(query: str, termini: list[str], blocchi: list[dict[str, Any]]) -> lis
                 punteggio += idf[termine] * (occorrenze / (occorrenze + 1.2))
         if query_lower and query_lower in testo_lower:
             punteggio += 5.0
+
+        if intenti:
+            etichetta = f"{blocco['sezione']} {blocco['paragrafo']}".lower()
+            for intento in intenti:
+                if any(chiave in etichetta for chiave in INTENTI[intento]):
+                    punteggio += BOOST_INTENTO
+                    # "Gravidanza – ultimo trimestre" è più specifico di
+                    # "Gravidanza, allattamento e fertilità".
+                    if "trimestre" in etichetta:
+                        punteggio += 2.0
+                    if "non prenda" in etichetta:
+                        punteggio += 1.0
+
         if punteggio > 0:
             scored.append((punteggio, blocco))
     scored.sort(key=lambda x: x[0], reverse=True)
     return scored
 
 
-def cerca(query: str, farmaco_id: str, limite: int = 5) -> list[dict[str, Any]]:
-    """Restituisce i blocchi più pertinenti per un farmaco."""
+def cerca(
+    query: str,
+    farmaco_id: str,
+    limite: int = 5,
+    query_intento: str | None = None,
+) -> list[dict[str, Any]]:
+    """Restituisce i blocchi più pertinenti per un farmaco.
+
+    ``query_intento`` permette di calcolare i boost di intento sulla domanda
+    originale, anche quando la query usata per il matching è stata espansa.
+    """
     blocchi = blocchi_per_farmaco(farmaco_id)
-    scored = _score(query, tokenizza(query), blocchi)
+    scored = _score(query, tokenizza(query), blocchi, query_intento=query_intento)
 
     risultati: list[dict[str, Any]] = []
     for punteggio, blocco in scored[:limite]:

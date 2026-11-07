@@ -46,6 +46,7 @@ Regole fondamentali:
 4. Ogni risposta deve citare la fonte: documento, sezione e paragrafo.
 5. Non dare consigli medici personalizzati (es. "puoi prenderlo in gravidanza", "dosaggio per tuo figlio").
 6. Rispondi in italiano, in modo chiaro e semplice.
+7. Quando citi, usa il valore ID del blocco fornito nel contesto e riporta la frase più specifica che risponde alla domanda.
 
 Formato output richiesto (JSON):
 {
@@ -89,7 +90,9 @@ Contesto trovato nel foglio illustrativo:
 Istruzioni:
 - Rispondi usando SOLO il contesto fornito.
 - Se il contesto è vuoto o non contiene la risposta, metti "informazione_trovata": false e spiega che l'informazione non è nel foglio.
-- Ogni informazione deve avere una fonte con documento, sezione, paragrafo e testo_evidenziato (span esatto citato).
+- Ogni informazione deve avere una fonte con blocco_id (se fornito nel contesto), documento, sezione, paragrafo e testo_evidenziato (span esatto citato).
+- Cita la frase più specifica del contesto che risponde alla domanda.
+- Ordina le fonti per importanza: la prima deve essere quella che contiene l'informazione principale della risposta.
 - Output solo JSON valido, niente testo prima o dopo."""
 
 
@@ -111,8 +114,9 @@ def _format_history(messaggi: list[dict]) -> str:
 def _contesto(blocchi: list[dict]) -> str:
     parti = []
     for blocco in blocchi:
+        blocco_id = blocco.get("blocco_id") or "n/d"
         parti.append(
-            f"[Fonte] Documento: {blocco['documento']} | Sezione: {blocco['sezione']} | Paragrafo: {blocco['paragrafo']}\n{blocco['testo']}"
+            f"[Fonte] ID: {blocco_id} | Documento: {blocco['documento']} | Sezione: {blocco['sezione']} | Paragrafo: {blocco['paragrafo']}\n{blocco['testo']}"
         )
     return "\n\n".join(parti)
 
@@ -173,7 +177,9 @@ def _genera(
 def nodo_retrieval(state: ChatState) -> dict:
     """Prima ricerca: usa la domanda originale, senza espansione LLM."""
     query = state["messaggi"][-1]["testo"]
-    candidati = cerca_testo(query, state["farmaco_id"], limite=5)
+    candidati = cerca_testo(
+        query, state["farmaco_id"], limite=5, query_intento=query
+    )
     return {"candidati_retrieval": candidati, "fallback_usato": False}
 
 
@@ -196,8 +202,14 @@ def nodo_espandi_query(state: ChatState) -> dict:
 
 
 def nodo_retrieval_espanso(state: ChatState) -> dict:
-    query = state.get("query_espansa") or state["messaggi"][-1]["testo"]
-    candidati = cerca_testo(query, state["farmaco_id"], limite=5)
+    query_originale = state["messaggi"][-1]["testo"]
+    query = state.get("query_espansa") or query_originale
+    candidati = cerca_testo(
+        query,
+        state["farmaco_id"],
+        limite=5,
+        query_intento=query_originale,
+    )
     return {"candidati_retrieval": candidati, "fallback_usato": False}
 
 
