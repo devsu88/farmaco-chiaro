@@ -1,5 +1,6 @@
 from services.citazioni import (
     affina_span,
+    arricchisci_fonti,
     estrai_estratto,
     filtra_fonti,
     fonte_da_blocco,
@@ -82,3 +83,36 @@ def test_filtra_fonti_scarta_le_fonti_poco_pertinenti():
     ]
     filtrate = filtra_fonti(fonti, "Non deve darlo ad altre persone con gli stessi sintomi.")
     assert filtrate == fonti[:1]
+
+
+def test_arricchisci_fonti_aggiunge_la_regola_di_condivisione():
+    fonte_indicazioni = {
+        "blocco_id": "augmentin_sec2",
+        "documento": "Foglio illustrativo",
+        "sezione": "Che cos'è Augmentin",
+        "paragrafo": "1",
+        "testo_evidenziato": "Augmentin è indicato per le infezioni dentali.",
+        "verificata": True,
+    }
+    blocco_intro = {
+        "blocco_id": "augmentin_sec0",
+        "documento": "Foglio illustrativo",
+        "sezione": "Introduzione",
+        "paragrafo": "1",
+        "testo": "Questo medicinale è stato prescritto soltanto per lei. "
+        "Non lo dia ad altre persone, anche se i sintomi sono uguali.",
+    }
+    risposta = (
+        "Augmentin è indicato per le infezioni dentali, ma non deve darlo "
+        "ad altre persone con gli stessi sintomi."
+    )
+    fonti = arricchisci_fonti(
+        [fonte_indicazioni],
+        [blocco_intro],
+        risposta,
+        query="mia sorella ha mal di denti, può prenderlo?",
+    )
+    assert [fonte["blocco_id"] for fonte in fonti] == [
+        "augmentin_sec2",
+        "augmentin_sec0",
+    ]

@@ -19,6 +19,15 @@ def _parole(testo: str) -> set[str]:
     }
 
 
+def _bigrammi(testo: str) -> set[tuple[str, str]]:
+    parole = [
+        parola
+        for parola in re.findall(r"[a-zA-ZÀ-ÿ]{4,}", testo.lower())
+        if parola not in PAROLE_VUOTE
+    ]
+    return set(zip(parole, parole[1:]))
+
+
 def _frasi_con_offset(testo: str) -> list[tuple[int, int, str]]:
     """Divide in frasi/voci mantenendo gli offset esatti nel testo originale.
 
@@ -62,16 +71,26 @@ def affina_span(
     if len(span) <= 300 and span != testo_blocco.strip():
         return span
 
-    parole_contesto = _parole(f"{query} {risposta}")
+    # Espandiamo la query con i sinonimi clinici (denti -> dentali) per
+    # scegliere la frase giusta anche quando il foglio usa un termine diverso.
+    from services.retrieval import espandi_sinonimi
+
+    query_estesa = espandi_sinonimi(query) if query else query
+    parole_query = _parole(query_estesa)
+    parole_risposta = _parole(risposta)
+    parole_contesto = parole_query | parole_risposta
     frasi = _frasi_con_offset(testo_blocco)
     if not frasi:
         return span[:max_caratteri]
 
-    migliori = sorted(
-        frasi,
-        key=lambda item: len(parole_contesto & _parole(item[2])),
-        reverse=True,
-    )
+    def punteggio_frase(item: tuple[int, int, str]) -> int:
+        parole_frase = _parole(item[2])
+        # La pertinenza alla domanda pesa più delle parole comuni alla risposta.
+        return 3 * len(parole_query & parole_frase) + len(
+            parole_risposta & parole_frase
+        )
+
+    migliori = sorted(frasi, key=punteggio_frase, reverse=True)
     if not migliori:
         return span[:max_caratteri]
 
@@ -178,6 +197,82 @@ def filtra_fonti(fonti: list[dict[str, Any]], risposta: str) -> list[dict[str, A
 
     filtrate = [fonte for punteggio, fonte in punteggi if punteggio >= soglia]
     return filtrate or fonti[:1]
+
+
+def arricchisci_fonti(
+    fonti: list[dict[str, Any]],
+    blocchi: list[dict[str, Any]],
+    risposta: str,
+    query: str = "",
+    max_fonti: int = 3,
+) -> list[dict[str, Any]]:
+    """Aggiunge fonti dal contesto che sostengono la risposta.
+
+    Il modello a volte cita un solo blocco anche quando la risposta combina
+    due informazioni (es. indicazione + regola di condivisione). Aggiungiamo
+    i blocchi del contesto con forte sovrapposizione con la risposta.
+    """
+    if len(fonti) >= max_fonti:
+        return fonti
+
+    parole_risposta = _parole(risposta)
+    if not parole_risposta:
+        return fonti
+
+    id_presenti = {fonte.get("blocco_id") for fonte in fonti}
+    punteggi_esistenti = [
+        len(parole_risposta & _parole(fonte.get("testo_evidenziato", "")))
+        for fonte in fonti
+    ]
+    migliore_esistente = max(punteggi_esistenti, default=0)
+
+    candidate: list[tuple[int, dict[str, Any], str]] = []
+    for blocco in blocchi:
+        blocco_id = blocco.get("blocco_id") or blocco.get("id")
+        if blocco_id in id_presenti:
+            continue
+        span = affina_span(
+            blocco["testo"],
+            blocco["testo"],
+            query=query,
+            risposta=risposta,
+        )
+        punteggio = len(parole_risposta & _parole(span))
+        candidate.append((punteggio, blocco, span))
+
+    if not candidate:
+        return fonti
+
+    migliore = max(punteggio for punteggio, _, _ in candidate)
+    # Aggiungiamo solo fonti almeno comparabili a quella già citata oppure che
+    # condividono una coppia di parole distintiva con la risposta (es.
+    # "infezioni dentali"). Evita blocchi generici con sole parole comuni.
+    soglia = max(3, int(migliore_esistente * 0.9))
+    bigrammi_risposta = _bigrammi(risposta)
+    da_aggiungere = [
+        (punteggio, blocco, span)
+        for punteggio, blocco, span in candidate
+        if punteggio >= max(2, soglia)
+        or (bigrammi_risposta & _bigrammi(span))
+    ]
+    if not da_aggiungere and migliore < soglia:
+        return fonti
+
+    da_aggiungere.sort(key=lambda item: item[0], reverse=True)
+    for punteggio, blocco, span in da_aggiungere:
+        if len(fonti) >= max_fonti:
+            break
+        fonti.append(
+            {
+                "blocco_id": blocco.get("blocco_id") or blocco.get("id"),
+                "documento": blocco["documento"],
+                "sezione": blocco["sezione"],
+                "paragrafo": blocco["paragrafo"],
+                "testo_evidenziato": span,
+                "verificata": True,
+            }
+        )
+    return fonti
 
 
 def valida_fonte(

@@ -48,3 +48,14 @@ def test_intento_condivisione_trova_il_blocco_giusto():
     assert risultati
     assert risultati[0]["blocco_id"] == "plasil_sec0"
     assert "Non lo dia ad altre persone" in risultati[0]["testo"]
+
+
+def test_intento_condivisione_riconosce_i_familiari():
+    risultati = cerca(
+        "quindi se mia sorella soffre di mal di denti può prenderlo?",
+        "augmentin",
+        limite=5,
+    )
+    assert risultati
+    assert risultati[0]["blocco_id"] == "augmentin_sec0"
+    assert any(r["blocco_id"] == "augmentin_sec2" for r in risultati)

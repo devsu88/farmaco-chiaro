@@ -453,8 +453,13 @@ della demo originale; dove c'è divergenza, vale questa sezione.
 - Per i blocchi lunghi viene passato al modello solo l'**estratto pertinente**
   alla domanda, non l'intero blocco.
 - Aggiunti sinonimi clinici (cuore/cardiaco, stomaco/addominale,
-  fegato/epatico, reni/renale) e il riconoscimento dell'intento di
-  condivisione del farmaco.
+  fegato/epatico, reni/renale, denti/dentale) e il riconoscimento
+  dell'intento di condivisione del farmaco, inclusi i familiari
+  (sorella, fratello, madre, padre, figlio, coniuge, ecc.).
+- Le risposte che combinano più informazioni (es. "indicato per i denti" +
+  "non darlo ad altre persone") ricevono automaticamente entrambe le fonti:
+  il backend arricchisce le citazioni con i blocchi del contesto che
+  condividono frasi distintive con la risposta.
 - I blocchi dell'indice vengono ripuliti dal footer legale AIFA, che non può
   quindi diventare una fonte citata.
 - Il contesto passa al modello anche il `blocco_id`. La chat mostra tutte le

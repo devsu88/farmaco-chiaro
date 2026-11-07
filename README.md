@@ -89,7 +89,8 @@ inoltrano le richieste al backend tramite `BACKEND_URL`.
 - `.env` è ignorato da Git.
 - La chiave OpenRouter resta solo nel backend.
 - Le citazioni della chat vengono validate contro i blocchi dell'indice.
-- Il retrieval riconosce intenti comuni (gravidanza, allattamento, bambini, dosaggio, condivisione del farmaco), sinonimi clinici e la chat usa lo storico per riscrivere i follow-up.
+- Il retrieval riconosce intenti comuni (gravidanza, allattamento, bambini, dosaggio, condivisione del farmaco anche con familiari), sinonimi clinici e la chat usa lo storico per riscrivere i follow-up.
+- Le risposte che uniscono più informazioni ricevono automaticamente le fonti corrispondenti.
 - Le domande sulla conversazione ("ti ho già chiesto...") vengono risposte dallo storico, senza retrieval.
 - Le citazioni vengono ridotte alla frase pertinente e filtrate rispetto alla risposta.
 - La sintesi vocale usa OpenRouter TTS (`TTS_MODEL`, `TTS_VOICE`) e non le voci del browser.

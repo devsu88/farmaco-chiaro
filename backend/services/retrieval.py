@@ -88,6 +88,25 @@ INTENTI = {
         "nausea",
         "vomito",
     ],
+    "indicazioni": [
+        "mal di",
+        "dolore",
+        "serve per",
+        "indicato per",
+        "infezione",
+        "infezioni",
+        "che cos",
+        "a cosa serve",
+        "indicazioni terapeutiche",
+    ],
+    "denti": [
+        "dente",
+        "denti",
+        "dentale",
+        "dentali",
+        "odontoiatric",
+        "ascesso",
+    ],
 }
 
 # Sinonimi clinici ricorrenti: il paziente dice "cuore", il foglio dice
@@ -99,6 +118,7 @@ SINONIMI = {
     "reni": ["renale", "renali"],
     "pressione": ["ipertensione", "ipotensione"],
     "mal di testa": ["cefalea", "emicrania"],
+    "denti": ["dente", "dentale", "dentali", "odontoiatrico"],
 }
 
 # Intenti che si riconoscono da frasi presenti nel corpo del blocco, non dal
@@ -111,6 +131,20 @@ INTENTI_TESTO = {
             "familiare",
             "amico",
             "amica",
+            "sorella",
+            "fratello",
+            "madre",
+            "padre",
+            "figlio",
+            "figlia",
+            "moglie",
+            "marito",
+            "nonna",
+            "nonno",
+            "zia",
+            "zio",
+            "cugino",
+            "cugina",
             "altra persona",
             "altre persone",
             "condividere",

@@ -24,6 +24,7 @@ from app.farmaci import tieni_primo_foglio
 from app.json_utils import parse_json_object
 from app.llm import CHAT_MODEL, build_llm
 from services.citazioni import (
+    arricchisci_fonti,
     estrai_estratto,
     filtra_fonti,
     fonte_da_blocco,
@@ -102,6 +103,7 @@ Ultima domanda: {query}
 Regole:
 - Se la domanda è già autonoma, restituiscila quasi identica.
 - Se è un follow-up ("e se...", "e per...", "posso lo stesso?"), esplicita l'argomento e il farmaco.
+- Se la domanda riguarda un'altra persona (sorella, fratello, madre, amico, parente), esplicita che chiedi se quella persona può prendere il farmaco prescritto all'utente.
 - Non rispondere alla domanda.
 - Rispondi solo con la domanda riscritta, senza virgolette né spiegazioni."""
 
@@ -132,6 +134,10 @@ Istruzioni:
 - Ogni informazione deve avere una fonte con blocco_id (se fornito nel contesto), documento, sezione, paragrafo e testo_evidenziato (span esatto citato).
 - Cita la frase più specifica del contesto che risponde alla domanda.
 - Se il contesto contiene un'informazione correlata alla domanda (anche un sintomo o una reazione specifica), citala prima di dire che non esiste una sezione specifica.
+- Se la domanda riguarda un'altra persona (sorella, amico, parente), combina la regola sulla condivisione del farmaco con l'indicazione clinica presente nel contesto.
+- Se il contesto contiene un blocco "Che cos'è ... e a che cosa serve", usalo per verificare se il sintomo è tra le indicazioni; non dire che le indicazioni terapeutiche mancano.
+- Rispondi in modo diretto: prima la conclusione (sì/no), poi il motivo.
+- Se la risposta combina più informazioni (es. indicazione clinica + regola di condivisione), cita una fonte per ciascuna.
 - Riporta al massimo 2 fonti, solo quelle che contengono le informazioni citate nella risposta.
 - Ordina le fonti per importanza: la prima deve essere quella che contiene l'informazione principale della risposta.
 - Output solo JSON valido, niente testo prima o dopo."""
@@ -145,6 +151,8 @@ META_PATTERNS = [
     r"\bcosa (mi )?hai detto\b",
     r"\bdi cosa (abbiamo|stiamo) parlato\b",
     r"\bdomanda precedente\b",
+    r"\bte lo avevo chiesto\b",
+    r"\bte l'ho chiesto\b",
     r"\bripeti\b",
     r"\briassumi\b",
 ]
@@ -242,6 +250,12 @@ def _genera(
         fonti = []
     else:
         fonti = filtra_fonti(fonti, testo_risposta)
+        fonti = arricchisci_fonti(
+            fonti,
+            blocchi_fonte,
+            testo_risposta,
+            query=user_query,
+        )
 
     return {
         "risposta_finale": testo_risposta,
@@ -366,7 +380,7 @@ def nodo_retrieval_espanso(state: ChatState) -> dict:
 
 def nodo_genera_risposta(state: ChatState) -> dict:
     candidati = state.get("candidati_retrieval", [])
-    blocchi_contesto = candidati[:4]
+    blocchi_contesto = candidati[:5]
     query = state.get("query_riscritta") or state["messaggi"][-1]["testo"]
     return _genera(
         state,
