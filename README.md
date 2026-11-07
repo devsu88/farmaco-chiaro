@@ -56,6 +56,7 @@ make dev     # backend + frontend in parallelo
 - `backend/data/catalogo_farmaci.json`: preview per le card della home.
 - `backend/data/markdown/FI/*.md`: fonte di conoscenza per chat e documento originale.
 - `backend/index/blocchi.json`: indice generato, con `index_meta.json`.
+- `backend/data/cache/`: cache runtime di semplificazioni e audio TTS (ignorata da Git).
 
 Dopo aver modificato i markdown:
 
@@ -76,7 +77,8 @@ La CI verifica che l'indice committato sia aggiornato con
 | GET | `/api/farmaci/{id}` | dettaglio preview |
 | GET | `/api/farmaci/{id}/documento` | documento citabile a blocchi |
 | GET | `/api/search?q=` | ricerca per farmaco |
-| POST | `/api/simplify` | semplificazione ETR |
+| POST | `/api/simplify` | semplificazione ETR (con cache persistente) |
+| POST | `/api/tts` | sintesi vocale della versione facile |
 | POST | `/api/chat` | chat con fonti verificate |
 
 Il browser chiama sempre le route proxy same-origin di Next (`/api/*`), che
@@ -87,3 +89,5 @@ inoltrano le richieste al backend tramite `BACKEND_URL`.
 - `.env` è ignorato da Git.
 - La chiave OpenRouter resta solo nel backend.
 - Le citazioni della chat vengono validate contro i blocchi dell'indice.
+- La sintesi vocale usa OpenRouter TTS (`TTS_MODEL`, `TTS_VOICE`) e non le voci del browser.
+- Le semplificazioni e gli audio sono in cache su disco; `forza: true` rigenera la semplificazione.

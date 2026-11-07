@@ -130,7 +130,8 @@ Avvio: `uv run uvicorn app.main:app --host 127.0.0.1 --port 8000`
 | GET | `/api/farmaci` | lista preview (id, nome, principio attivo) |
 | GET | `/api/farmaci/{id}` | dettaglio preview dal catalogo JSON |
 | GET | `/api/search?q=...` | ricerca keyword sui blocchi, aggregata per farmaco |
-| POST | `/api/simplify` | semplificazione ETR di una sezione o di tutte |
+| POST | `/api/simplify` | semplificazione ETR di una sezione o di tutte (con cache) |
+| POST | `/api/tts` | sintesi vocale della versione facile (HeyGen via OpenRouter) |
 | POST | `/api/chat` | chatbot LangGraph con fonti citate |
 | GET | `/api/simplify/status` | disponibilità del servizio e modello attivo |
 
@@ -242,7 +243,7 @@ Azioni disponibili:
 |--------|---------|
 | 💬 Chiedi al chatbot | apre il popup; la risposta cita le fonti e la prima viene evidenziata in giallo nell'originale |
 | 🪄 Semplifica testo | chiama `/api/simplify`, mostra spinner, poi il pannello destro ETR |
-| Ascolta versione facile | Web Speech API (`SpeechSynthesisUtterance`, `it-IT`, rate 0.9) |
+| Ascolta versione facile | chiama `/api/tts`, riceve un WAV e lo riproduce con `HTMLAudioElement` |
 
 ### Componenti
 
@@ -256,7 +257,15 @@ Azioni disponibili:
 
 ### TTS
 
-Scelta della demo: **Web Speech API**, gratuita e senza infrastruttura. Non richiede file audio, funziona offline lato browser e supporta l'italiano. Il fallback MP3 è previsto solo per la demo dal vivo, nel caso il browser/voce non sia disponibile. In prospettiva: pre-generazione di MP3 con un TTS dedicato per garantire qualità e coerenza su tutti i dispositivi.
+La sintesi vocale è **server-side** tramite OpenRouter TTS con il modello
+`heygen/heygen-voice-1-turbo:free`. Il backend chiama
+`POST /api/v1/audio/speech`, riceve PCM, lo converte in WAV a 16 kHz e lo
+restituisce al browser, che lo riproduce con `HTMLAudioElement`.
+
+Vantaggi: voce coerente su tutti i dispositivi, nessuna dipendenza dalle voci
+installate nel sistema operativo, qualità controllabile. L'audio viene messo
+in cache su disco per testo+voce+modello, quindi riascoltare la stessa
+versione non richiama il provider. La voce è configurabile con `TTS_VOICE`.
 
 ## 8. Configurazione LLM
 
@@ -296,7 +305,7 @@ La factory condivisa `backend/app/llm.py` centralizza la creazione del client:
 | Chatbot "Posso prenderlo se ho il mal di testa?" | ✅ risposta corretta con fonte citata | ~6–9 s |
 | Evidenziazione della fonte nell'originale | ✅ | — |
 | Ricerca live in home | ✅ keyword | immediata |
-| TTS | ✅ Web Speech API | — |
+| TTS | ✅ HeyGen Voice Turbo via OpenRouter | ~1–2 s; cache su disco |
 | Build TypeScript + `next build` | ✅ | — |
 
 Server attivi in sviluppo: backend `:8000`, frontend `:3000`.
@@ -309,7 +318,7 @@ In ordine di priorità per la demo:
 2. **Fallback del chatbot non funzionante**: `carica_markdown` costruisce un nome file inesistente (`TACHIPIRINA_1000_FI.md`) e il match per sottostringa non trova `TACHIPIRINA_FI.md`. Il ramo di fallback restituisce quindi "non trovato" invece di leggere il markdown. Va corretto il mapping id → file.
 3. **Ricerca semantica**: implementare davvero il fallback LLM di `/api/search` (o embeddings) per sinonimi e domande in linguaggio naturale.
 4. **Qualità del retrieval**: il rerank usa un solo blocco come "principale"; valutare top-k con soglia di score e citazioni multiple.
-5. **Latenza**: il free tier è lento. Per la demo si può passare a un modello più veloce via `.env`; a regime servono streaming e cache delle semplificazioni.
+5. **Latenza**: il free tier è lento. Le semplificazioni sono ora in cache persistente su disco; a regime servono streaming e cache condivisa.
 6. **UX risultati di ricerca**: il dropdown mostra lo slug (`tachipirina_1000`) invece del nome leggibile.
 7. **Semplificazione dell'originale**: il pannello sinistro unisce le 6 sezioni JSON; per un allineamento perfetto con le citazioni conviene renderizzare il markdown completo con la struttura delle sezioni.
 8. **Accessibilità**: verificare contrasti, focus da tastiera, ARIA nel popup chat, dimensione del testo regolabile.
@@ -399,7 +408,8 @@ della demo originale; dove c'è divergenza, vale questa sezione.
 
 - Nuovi moduli: `app/config.py`, `app/farmaci.py`, `app/schemas.py`,
   `app/json_utils.py`, `services/retrieval.py`, `services/documento.py`,
-  `services/citazioni.py`, `services/simplify.py`.
+  `services/citazioni.py`, `services/simplify.py`, `services/cache.py`,
+  `services/tts.py`.
 - Nuovo endpoint `GET /api/farmaci/{id}/documento`: restituisce il foglio
   sezionato in blocchi citabili (`blocco_id`, paragrafo, testo).
 - Il pannello sinistro del frontend non usa più `Object.values(sezioni)`:
@@ -407,19 +417,28 @@ della demo originale; dove c'è divergenza, vale questa sezione.
   evidenziata per `blocco_id` con scroll automatico.
 - Tutte le chiamate del browser passano dalle route proxy same-origin di
   Next (`/api/farmaci`, `/api/search`, `/api/chat`, `/api/simplify`,
-  `/api/farmaco/[id]/documento`). `BACKEND_URL` è server-side.
-- Graph semplificato: `espandi -> recupera -> genera | fallback`. Il rerank
-  LLM separato è stato rimosso; si generano al massimo 3 blocchi di contesto.
+  `/api/tts`, `/api/farmaco/[id]/documento`). `BACKEND_URL` è server-side.
+- Graph semplificato: `recupera -> genera | espandi -> recupera -> genera |
+  fallback`. L'espansione LLM avviene solo se la query originale non trova
+  blocchi. Il rerank LLM separato è stato rimosso; si generano al massimo 3
+  blocchi di contesto.
 - Le fonti prodotte dal modello vengono validate contro i blocchi: se lo
   span citato non è contenuto nel blocco, la fonte viene scartata e si usa
   quella del retrieval.
 - La semplificazione non tronca più silenziosamente a 6.000 caratteri:
-  chunking con merge, cache LRU e pulizia degli artefatti OCR.
+  chunking con merge e pulizia degli artefatti OCR. Il risultato viene salvato
+  in una **cache persistente su disco** in `backend/data/cache/simplify/`,
+  con chiave `prompt_version + modello + hash(testo)`. Il parametro
+  `forza: true` rigenera ignorando la cache.
+- Nuovo endpoint `POST /api/tts`: usa OpenRouter TTS
+  (`heygen/heygen-voice-1-turbo:free`), converte PCM→WAV a 16 kHz e mette
+  l'audio in cache in `backend/data/cache/tts/`. Il frontend riproduce il WAV
+  con `HTMLAudioElement`, senza dipendere dalle voci del browser.
 
 ### Qualità e operatività
 
 - Test backend con pytest (registro, retrieval, documento, citazioni, API,
-  chunking). 18 test verdi.
+  chunking, cache, conversione audio). 24 test verdi.
 - `ruff` per il backend; ESLint pulito per il frontend; `next build` verde.
 - `docker-compose.yml` + Dockerfile per backend e frontend.
 - CI GitHub Actions: pytest, `build_index.py --check`, ESLint, `next build`.

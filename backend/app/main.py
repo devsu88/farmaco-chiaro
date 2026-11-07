@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app import farmaci
 from app.config import BLOCCHI_FILE, FRONTEND_ORIGINS
-from app.routes import chat, search, simplify
+from app.routes import chat, search, simplify, tts
 from app.routes import farmaci as farmaci_routes
 
 load_dotenv()
@@ -30,6 +30,7 @@ app.add_middleware(
 app.include_router(farmaci_routes.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(simplify.router, prefix="/api")
+app.include_router(tts.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 
 

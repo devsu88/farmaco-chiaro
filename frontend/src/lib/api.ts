@@ -50,6 +50,7 @@ export interface SimplifyResponse {
     note: string
   }
   errore?: string
+  cached?: boolean
 }
 
 export interface FonteCitata {
@@ -105,6 +106,7 @@ export const api = {
     farmaco_id: string
     sezione?: string
     testo?: string
+    forza?: boolean
   }): Promise<SimplifyResponse> =>
     fetchJSON("/api/simplify", {
       method: "POST",

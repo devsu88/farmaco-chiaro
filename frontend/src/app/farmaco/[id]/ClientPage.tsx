@@ -13,7 +13,7 @@ import { OriginalDocument } from "@/components/OriginalDocument"
 import { EasyText } from "@/components/EasyText"
 import { ChatButton } from "@/components/ChatButton"
 import { ChatPanel } from "@/components/ChatPanel"
-import { useSpeech } from "@/hooks/useSpeech"
+import { useTTS } from "@/hooks/useTTS"
 
 export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   const router = useRouter()
@@ -21,9 +21,9 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
     speak,
     stop,
     speaking,
-    supported,
-    error: speechError,
-  } = useSpeech()
+    loading: ttsLoading,
+    error: ttsError,
+  } = useTTS()
 
   const [farmaco, setFarmaco] = useState<FarmacoDetail | null>(null)
   const [documento, setDocumento] = useState<DocumentoResponse | null>(null)
@@ -99,26 +99,30 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
     }
   }, [farmacoId])
 
-  const semplifica = useCallback(async () => {
-    if (semplificando) return
-    setSemplificando(true)
-    setSimplifyError(null)
+  const semplifica = useCallback(
+    async (forza = false) => {
+      if (semplificando) return
+      setSemplificando(true)
+      setSimplifyError(null)
 
-    try {
-      const versione = await api.simplify({
-        farmaco_id: farmacoId,
-        sezione: "tutta",
-      })
-      setVersioneFacile(versione)
-      setFonteEvidenziata(null)
-    } catch (err) {
-      setSimplifyError(
-        err instanceof Error ? err.message : "Semplificazione non disponibile"
-      )
-    } finally {
-      setSemplificando(false)
-    }
-  }, [farmacoId, semplificando])
+      try {
+        const versione = await api.simplify({
+          farmaco_id: farmacoId,
+          sezione: "tutta",
+          forza,
+        })
+        setVersioneFacile(versione)
+        setFonteEvidenziata(null)
+      } catch (err) {
+        setSimplifyError(
+          err instanceof Error ? err.message : "Semplificazione non disponibile"
+        )
+      } finally {
+        setSemplificando(false)
+      }
+    },
+    [farmacoId, semplificando]
+  )
 
   const testoDaLeggere = versioneFacile
     ? [versioneFacile.una_frase, ...versioneFacile.versione_facile].join(" ")
@@ -201,7 +205,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
               onToggle={() => setChatOpen((aperta) => !aperta)}
             />
             <button
-              onClick={semplifica}
+              onClick={() => semplifica()}
               disabled={semplificando}
               className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-500"
             >
@@ -256,35 +260,47 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
                   glossario={versioneFacile.glossario}
                   domandeFarmacista={versioneFacile.domande_farmacista}
                 />
-                <div className="pt-4 border-t border-gray-100">
-                  {supported ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => speak(testoDaLeggere)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-700 font-medium hover:bg-green-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
-                      >
-                        Ascolta versione facile
-                      </button>
-                      {speaking && (
-                        <button
-                          onClick={stop}
-                          className="px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                        >
-                          Ferma
-                        </button>
-                      )}
-                    </div>
-                  ) : (
+                <div className="pt-4 border-t border-gray-100 space-y-2">
+                  {versioneFacile.cached && (
                     <p className="text-xs text-gray-500 text-center">
-                      La sintesi vocale non è supportata da questo browser.
+                      Versione già disponibile, caricata dalla cache.
                     </p>
                   )}
-                  {speechError && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => speak(testoDaLeggere)}
+                      disabled={ttsLoading}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-700 font-medium hover:bg-green-100 transition-colors disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      {ttsLoading
+                        ? "Preparo l'audio..."
+                        : speaking
+                          ? "Riascolta"
+                          : "Ascolta versione facile"}
+                    </button>
+                    {speaking && (
+                      <button
+                        onClick={stop}
+                        className="px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      >
+                        Ferma
+                      </button>
+                    )}
+                    <button
+                      onClick={() => semplifica(true)}
+                      disabled={semplificando || ttsLoading}
+                      title="Rigenera la versione semplificata ignorando la cache"
+                      className="px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    >
+                      Rigenera
+                    </button>
+                  </div>
+                  {ttsError && (
                     <p
                       role="alert"
-                      className="mt-2 text-xs text-red-700 text-center"
+                      className="text-xs text-red-700 text-center"
                     >
-                      {speechError}
+                      {ttsError}
                     </p>
                   )}
                 </div>

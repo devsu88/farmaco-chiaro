@@ -5,7 +5,8 @@ from fastapi import APIRouter, HTTPException
 
 from app.llm import SIMPLIFY_MODEL, build_llm, has_valid_api_key
 from app.schemas import SimplifyRequest, SimplifyResponse
-from services.simplify import fallback, semplifica, testo_da_catalogo
+from services import cache
+from services.simplify import fallback, pulisci_testo, semplifica, testo_da_catalogo
 
 router = APIRouter()
 
@@ -32,8 +33,15 @@ def simplify(req: SimplifyRequest) -> dict:
         except FileNotFoundError:
             raise HTTPException(status_code=500, detail="Catalogo farmaci non trovato")
 
+    testo = pulisci_testo(testo)
+
+    if not req.forza:
+        cached = cache.leggi_semplificazione(testo, SIMPLIFY_MODEL)
+        if cached is not None:
+            return {**cached, "cached": True}
+
     if not has_valid_api_key():
         return fallback("API key OpenRouter mancante o non valida")
 
     llm = build_llm(model=SIMPLIFY_MODEL, temperature=0.2, max_tokens=2000)
-    return semplifica(testo, llm)
+    return semplifica(testo, llm, forza=req.forza)

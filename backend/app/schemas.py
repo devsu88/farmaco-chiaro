@@ -57,6 +57,7 @@ class SimplifyRequest(BaseModel):
     farmaco_id: str
     sezione: str = "tutta"
     testo: str | None = None
+    forza: bool = False
 
 
 class EntitaVerificate(BaseModel):
@@ -76,6 +77,7 @@ class SimplifyResponse(BaseModel):
     domande_farmacista: list[str] = Field(default_factory=list)
     entita_verificate: EntitaVerificate = Field(default_factory=EntitaVerificate)
     errore: str | None = None
+    cached: bool = False
 
 
 class ChatMessage(BaseModel):

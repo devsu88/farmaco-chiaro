@@ -5,6 +5,7 @@ backend/.env.*
 
 # Python
 backend/.venv/
+backend/data/cache/
 **/__pycache__/
 *.py[oc]
 .pytest_cache/

@@ -1,7 +1,6 @@
 """Semplificazione ETR: prompt, chunking, merge e cache."""
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from typing import Any
@@ -11,6 +10,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import CATALOGO_FILE
 from app.farmaci import require
 from app.json_utils import parse_json_object
+from services import cache
 
 ETR_SYSTEM_PROMPT = """Sei un esperto di linguaggio facile da leggere (ETR - Easy to Read) in italiano.
 Il tuo compito è semplificare testi di fogli illustrativi farmaci per renderli comprensibili a persone con disabilità intellettiva lieve, dislessia, afasia o anziani.
@@ -41,8 +41,7 @@ Non inventare informazioni. Se una sezione non c'è, indicalo.
 SEZIONI_UTILI = ["indicazioni", "posologia", "controindicazioni", "avvertenze"]
 OCR_ARTIFACTS = {"Ita", "Ag", "rm", "Fa", "del", "enz", "lia", "na", "aco"}
 
-_cache: dict[str, dict[str, Any]] = {}
-_CACHE_MAX = 128
+
 
 
 def _fallback(motivo: str) -> dict[str, Any]:
@@ -207,24 +206,26 @@ def _merge(risultati: list[dict[str, Any]], totale_parti: int) -> dict[str, Any]
     }
 
 
-def semplifica(testo: str, llm: Any, max_chars: int = 6000) -> dict[str, Any]:
-    """Semplifica un testo, gestendo automaticamente testi lunghi."""
+def semplifica(
+    testo: str, llm: Any, max_chars: int = 6000, forza: bool = False
+) -> dict[str, Any]:
+    """Semplifica un testo, con cache persistente su disco."""
     testo = pulisci_testo(testo)
     if not testo:
         return _fallback("Testo da semplificare vuoto")
 
     modello = getattr(llm, "model_name", "") or ""
-    chiave = hashlib.sha256(f"{modello}:{testo}".encode()).hexdigest()
-    if chiave in _cache:
-        return _cache[chiave]
+    if not forza:
+        cached = cache.leggi_semplificazione(testo, modello)
+        if cached is not None:
+            return {**cached, "cached": True}
 
     chunks = _chunk_text(testo, max_chars=max_chars)
     risultati = [_chiama_modello(llm, chunk, i, len(chunks)) for i, chunk in enumerate(chunks)]
     risultato = _merge(risultati, len(chunks))
+    risultato["cached"] = False
 
-    if len(_cache) >= _CACHE_MAX:
-        _cache.clear()
-    _cache[chiave] = risultato
+    cache.scrivi_semplificazione(testo, modello, risultato)
     return risultato
 
 
@@ -258,5 +259,4 @@ def fallback(motivo: str) -> dict[str, Any]:
     return _fallback(motivo)
 
 
-def reset_cache() -> None:
-    _cache.clear()
+
