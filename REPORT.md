@@ -249,7 +249,7 @@ Azioni disponibili:
 | Componente | Ruolo |
 |------------|-------|
 | `SearchBar` | input con debounce, dropdown risultati, spinner |
-| `OriginalText` | pannello originale, scrollabile, con eventuale evidenziazione |
+| `OriginalDocument` | pannello originale a blocchi, con evidenziazione per `blocco_id` |
 | `HighlightSpan` | trova la prima occorrenza case-insensitive dello span e la racchiude in `<mark>` |
 | `EasyText` | una frase, elenco ETR, glossario, domande per il farmacista |
 | `ChatButton` + `ChatPopup` | apertura popup, invio messaggi, storico, fonti |
@@ -284,7 +284,7 @@ La factory condivisa `backend/app/llm.py` centralizza la creazione del client:
 | CORS / DNS dal browser | chiamata diretta al backend | proxy same-origin nelle API route di Next |
 | Tailwind non applicato | Tailwind v4 incompatibile con Turbopack/`magic-string` | downgrade a v3 + `postcss.config.js` + `tailwind.config.js` |
 | `params` undefined nel dettaglio | Next 16: `params` è una Promise | `page.tsx` server component con `await params` e prop al client |
-| Evidenziazione fonte non collegata | callback non passata da `ChatButton` | `onHighlightSource` propagata fino a `OriginalText` |
+| Evidenziazione fonte non collegata | callback non passata da `ChatButton` | `onHighlightSource` propagata fino a `OriginalDocument` |
 
 ## 10. Stato attuale verificato
 
