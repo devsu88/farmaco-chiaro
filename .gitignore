@@ -21,6 +21,9 @@ frontend/node_modules/
 frontend/.next/
 frontend/tsconfig.tsbuildinfo
 
+# Documento di lavoro interno (non pubblicato)
+REPORT.md
+
 # Tooling
 .playwright-mcp/
 
