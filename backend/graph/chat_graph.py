@@ -15,6 +15,7 @@ from typing import TypedDict
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
+from app.farmaci import tieni_primo_foglio
 from app.json_utils import parse_json_object
 from app.llm import CHAT_MODEL, build_llm
 from services.citazioni import fonte_da_blocco, valida_fonte
@@ -199,9 +200,10 @@ def nodo_fallback(state: ChatState) -> dict:
             return _genera(state, _contesto(chunks), chunks, True)
 
         markdown = carica_markdown(farmaco_id, tipo="FI")
+        contenuto = tieni_primo_foglio(markdown["contenuto"])
         contesto = (
             "Contenuto completo del foglio illustrativo (estratto):\n"
-            + markdown["contenuto"][:6000]
+            + contenuto[:6000]
         )
         return _genera(state, contesto, [], True)
     except Exception:
