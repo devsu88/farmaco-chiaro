@@ -2,14 +2,53 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 
+const MAX_CHUNK_CHARS = 600
+
+function dividiInChunk(testo: string, maxChars = MAX_CHUNK_CHARS): string[] {
+  const frasi = testo.match(/[^.!?]+[.!?]*/g) ?? [testo]
+  const chunk: string[] = []
+  let corrente = ""
+
+  for (const frase of frasi) {
+    const parti =
+      frase.length > maxChars
+        ? (frase.match(new RegExp(`.{1,${maxChars}}`, "g")) ?? [frase])
+        : [frase]
+
+    for (const parte of parti) {
+      const candidato = `${corrente} ${parte}`.trim()
+      if (candidato.length > maxChars && corrente) {
+        chunk.push(corrente)
+        corrente = parte.trim()
+      } else {
+        corrente = candidato
+      }
+    }
+  }
+  if (corrente) chunk.push(corrente)
+  return chunk.length > 0 ? chunk : [testo]
+}
+
+function attesa(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export function useTTS() {
   const [speaking, setSpeaking] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const urlRef = useRef<string | null>(null)
+  const runIdRef = useRef(0)
+  const resolvePlaybackRef = useRef<(() => void) | null>(null)
 
   const stop = useCallback(() => {
+    runIdRef.current += 1
+
+    if (resolvePlaybackRef.current) {
+      resolvePlaybackRef.current()
+      resolvePlaybackRef.current = null
+    }
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.currentTime = 0
@@ -27,52 +66,77 @@ export function useTTS() {
     return () => stop()
   }, [stop])
 
+  const riproduciChunk = useCallback(
+    async (testo: string, runId: number): Promise<void> => {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testo }),
+      })
+
+      if (!res.ok) {
+        let messaggio = "Sintesi vocale non disponibile"
+        try {
+          const body = await res.json()
+          messaggio = body?.detail || body?.error?.message || messaggio
+        } catch {
+          // risposta non JSON
+        }
+        throw new Error(messaggio)
+      }
+
+      const blob = await res.blob()
+      if (runId !== runIdRef.current) return
+
+      const url = URL.createObjectURL(blob)
+      urlRef.current = url
+
+      const audio = new Audio(url)
+      audioRef.current = audio
+
+      await new Promise<void>((resolve) => {
+        resolvePlaybackRef.current = resolve
+        audio.onended = () => resolve()
+        audio.onerror = () => resolve()
+        audio
+          .play()
+          .then(() => {
+            setSpeaking(true)
+            setLoading(false)
+          })
+          .catch(() => {
+            setError("Il browser ha bloccato la riproduzione audio.")
+            resolve()
+          })
+      })
+
+      resolvePlaybackRef.current = null
+      if (urlRef.current === url) {
+        URL.revokeObjectURL(url)
+        urlRef.current = null
+      }
+    },
+    []
+  )
+
   const speak = useCallback(
     async (text: string) => {
       if (!text.trim()) return
 
       stop()
+      const runId = runIdRef.current
       setError(null)
       setLoading(true)
 
       try {
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ testo: text }),
-        })
+        const chunks = dividiInChunk(text)
 
-        if (!res.ok) {
-          let messaggio = "Sintesi vocale non disponibile"
-          try {
-            const body = await res.json()
-            messaggio = body?.detail || body?.error?.message || messaggio
-          } catch {
-            // risposta non JSON
-          }
-          throw new Error(messaggio)
+        for (const chunk of chunks) {
+          if (runId !== runIdRef.current) return
+          await riproduciChunk(chunk, runId)
+          if (runId !== runIdRef.current) return
+          await attesa(120)
         }
-
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        urlRef.current = url
-
-        const audio = new Audio(url)
-        audioRef.current = audio
-        audio.onended = () => {
-          setSpeaking(false)
-          if (urlRef.current === url) {
-            URL.revokeObjectURL(url)
-            urlRef.current = null
-          }
-        }
-        audio.onerror = () => {
-          setSpeaking(false)
-          setError("Impossibile riprodurre l'audio generato.")
-        }
-
-        setSpeaking(true)
-        await audio.play()
       } catch (err) {
         setSpeaking(false)
         setError(
@@ -82,9 +146,12 @@ export function useTTS() {
         )
       } finally {
         setLoading(false)
+        if (runId === runIdRef.current) {
+          setSpeaking(false)
+        }
       }
     },
-    [stop]
+    [riproduciChunk, stop]
   )
 
   return { speak, stop, speaking, loading, error }

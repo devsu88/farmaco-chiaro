@@ -267,6 +267,11 @@ installate nel sistema operativo, qualità controllabile. L'audio viene messo
 in cache su disco per testo+voce+modello, quindi riascoltare la stessa
 versione non richiama il provider. La voce è configurabile con `TTS_VOICE`.
 
+Il testo della versione facile viene diviso in chunk di circa 600 caratteri:
+il frontend li sintetizza e li riproduce in sequenza. In questo modo la prima
+frase parte subito, ogni risposta resta piccola e non si creano WAV da decine
+di MB. La route proxy Next inoltra l'audio in streaming, senza bufferizzarlo.
+
 ## 8. Configurazione LLM
 
 Provider: **OpenRouter**, quindi il backend è **model-agnostic**: si cambia modello nel `.env` senza toccare il codice.

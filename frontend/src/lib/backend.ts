@@ -26,8 +26,9 @@ export async function proxyAudio(
       })
     }
 
-    const audio = await res.arrayBuffer()
-    return new NextResponse(audio, {
+    // Passiamo il body in streaming: l'audio non viene bufferizzato in memoria
+    // dal server Next e le risposte lunghe non bloccano le richieste successive.
+    return new NextResponse(res.body, {
       status: res.status,
       headers: {
         "content-type": res.headers.get("content-type") || "audio/wav",
