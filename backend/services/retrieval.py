@@ -12,11 +12,15 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 from typing import Any
 
 from app import farmaci
 from app.config import BLOCCHI_FILE
+
+RETRIEVAL_MODE = os.getenv("RETRIEVAL_MODE", "hybrid").strip().lower()
+RRF_K = 60
 
 STOPWORDS = {
     "a", "al", "alla", "alle", "allo", "ai", "agli", "le", "la", "lo", "gli",
@@ -271,17 +275,29 @@ def _score(
     return scored
 
 
-def cerca(
+def _block_to_result(
+    blocco: dict[str, Any],
+    score_bm25: float = 0.0,
+    score_dense: float = 0.0,
+) -> dict[str, Any]:
+    return {
+        "blocco_id": blocco["id"],
+        "sezione": blocco["sezione"],
+        "paragrafo": blocco["paragrafo"],
+        "documento": blocco["documento"],
+        "testo": blocco["testo"],
+        "score": round(max(score_bm25, score_dense * 10), 4),
+        "score_bm25": round(score_bm25, 4),
+        "score_dense": round(score_dense, 4),
+    }
+
+
+def _bm25_results(
     query: str,
     farmaco_id: str,
-    limite: int = 5,
+    limite: int,
     query_intento: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Restituisce i blocchi più pertinenti per un farmaco.
-
-    ``query_intento`` permette di calcolare i boost di intento sulla domanda
-    originale, anche quando la query usata per il matching è stata espansa.
-    """
     blocchi = blocchi_per_farmaco(farmaco_id)
     query_match = espandi_sinonimi(query)
     scored = _score(
@@ -290,20 +306,91 @@ def cerca(
         blocchi,
         query_intento=query_intento or query,
     )
+    return [
+        _block_to_result(blocco, score_bm25=punteggio)
+        for punteggio, blocco in scored[:limite]
+    ]
 
-    risultati: list[dict[str, Any]] = []
-    for punteggio, blocco in scored[:limite]:
-        risultati.append(
-            {
-                "blocco_id": blocco["id"],
-                "sezione": blocco["sezione"],
-                "paragrafo": blocco["paragrafo"],
-                "documento": blocco["documento"],
-                "testo": blocco["testo"],
-                "score": round(punteggio, 4),
-            }
+
+def _fuse_rrf(
+    bm25_results: list[dict[str, Any]],
+    dense_results: list[dict[str, Any]],
+    limite: int,
+) -> list[dict[str, Any]]:
+    punteggi: dict[str, float] = {}
+    per_id: dict[str, dict[str, Any]] = {}
+
+    for rank, risultato in enumerate(bm25_results):
+        blocco_id = risultato["blocco_id"]
+        punteggi[blocco_id] = punteggi.get(blocco_id, 0.0) + 1.0 / (
+            RRF_K + rank + 1
         )
-    return risultati
+        per_id[blocco_id] = {**risultato}
+
+    for rank, denso in enumerate(dense_results):
+        blocco_id = denso["blocco_id"]
+        punteggi[blocco_id] = punteggi.get(blocco_id, 0.0) + 1.0 / (
+            RRF_K + rank + 1
+        )
+        if blocco_id in per_id:
+            per_id[blocco_id]["score_dense"] = round(denso["score_dense"], 4)
+        else:
+            blocco = trova_blocco(blocco_id)
+            if blocco is None:
+                continue
+            per_id[blocco_id] = _block_to_result(
+                blocco,
+                score_dense=denso["score_dense"],
+            )
+
+    for blocco_id, risultato in per_id.items():
+        risultato["score_rrf"] = round(punteggi[blocco_id], 6)
+        risultato["score"] = round(
+            max(risultato.get("score_bm25", 0.0), risultato.get("score_dense", 0.0) * 10),
+            4,
+        )
+
+    return sorted(
+        per_id.values(),
+        key=lambda item: item["score_rrf"],
+        reverse=True,
+    )[:limite]
+
+
+def cerca(
+    query: str,
+    farmaco_id: str,
+    limite: int = 5,
+    query_intento: str | None = None,
+) -> list[dict[str, Any]]:
+    """Restituisce i blocchi più pertinenti per un farmaco.
+
+    Usa BM25 + ChromaDB con fusione RRF. Se Chroma non è disponibile o
+    l'embedding fallisce, restituisce il risultato BM25 senza errori.
+    """
+    bm25_results = _bm25_results(
+        query,
+        farmaco_id,
+        limite=max(limite, 20),
+        query_intento=query_intento or query,
+    )
+    if RETRIEVAL_MODE != "hybrid":
+        return bm25_results[:limite]
+
+    try:
+        from services import vector_store
+
+        densi = vector_store.query_dense(
+            query,
+            farmaco_id=farmaco_id,
+            n_results=max(limite, 20),
+        )
+    except Exception:
+        densi = []
+
+    if not densi:
+        return bm25_results[:limite]
+    return _fuse_rrf(bm25_results, densi, limite=limite)
 
 
 def cerca_farmaci(query: str, limite: int = 10) -> list[dict[str, Any]]:

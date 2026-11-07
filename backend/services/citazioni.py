@@ -188,14 +188,23 @@ def filtra_fonti(fonti: list[dict[str, Any]], risposta: str) -> list[dict[str, A
         return fonti
 
     parole_risposta = _parole(risposta)
+    bigrammi_risposta = _bigrammi(risposta)
     punteggi = [
         (len(parole_risposta & _parole(fonte.get("testo_evidenziato", ""))), fonte)
         for fonte in fonti
     ]
     migliore = max((punteggio for punteggio, _ in punteggi), default=0)
-    soglia = max(2, int(migliore * 0.45))
+    soglia = max(4, int(migliore * 0.6))
 
-    filtrate = [fonte for punteggio, fonte in punteggi if punteggio >= soglia]
+    filtrate = [
+        fonte
+        for punteggio, fonte in punteggi
+        if punteggio >= soglia
+        or (
+            bigrammi_risposta
+            & _bigrammi(fonte.get("testo_evidenziato", ""))
+        )
+    ]
     return filtrate or fonti[:1]
 
 

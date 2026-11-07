@@ -45,9 +45,30 @@ docker compose up --build
 
 ```bash
 make index   # rigenera backend/index/blocchi.json
+make ingest  # rigenera l'indice vettoriale ChromaDB (richiede API key)
 make test    # pytest + eslint
 make build   # next build
 make dev     # backend + frontend in parallelo
+```
+
+## Retrieval
+
+Il chatbot usa un retrieval ibrido: BM25 + embeddings
+(`nvidia/nemotron-3-embed-1b:free`) in ChromaDB, con fusione RRF.
+
+L'ingestion è volutamente separata dall'app:
+
+```bash
+cd backend
+uv run python index/build_index.py
+uv run python scripts/ingest_vector_index.py --reset
+```
+
+Se `backend/index/chroma/` non esiste, o se l'embedding fallisce, il backend
+usa automaticamente il solo BM25. Per forzare il lessicale:
+
+```env
+RETRIEVAL_MODE=bm25
 ```
 
 ## Dati
@@ -56,6 +77,7 @@ make dev     # backend + frontend in parallelo
 - `backend/data/catalogo_farmaci.json`: preview per le card della home.
 - `backend/data/markdown/FI/*.md`: fonte di conoscenza per chat e documento originale.
 - `backend/index/blocchi.json`: indice generato, con `index_meta.json`.
+- `backend/index/chroma/`: indice vettoriale ChromaDB generato dallo script di ingestion (ignorato da Git).
 - `backend/data/cache/`: cache runtime di semplificazioni e audio TTS (ignorata da Git).
 
 Dopo aver modificato i markdown:
@@ -90,6 +112,7 @@ inoltrano le richieste al backend tramite `BACKEND_URL`.
 - La chiave OpenRouter resta solo nel backend.
 - Le citazioni della chat vengono validate contro i blocchi dell'indice.
 - Il retrieval riconosce intenti comuni (gravidanza, allattamento, bambini, dosaggio, condivisione del farmaco anche con familiari), sinonimi clinici e la chat usa lo storico per riscrivere i follow-up.
+- Il retrieval è ibrido: BM25 + embeddings ChromaDB con fusione RRF; senza indice vettoriale torna a BM25.
 - Le risposte che uniscono più informazioni ricevono automaticamente le fonti corrispondenti.
 - Le domande sulla conversazione ("ti ho già chiesto...") vengono risposte dallo storico, senza retrieval.
 - Le citazioni vengono ridotte alla frase pertinente e filtrate rispetto alla risposta.

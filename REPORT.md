@@ -118,7 +118,7 @@ Risultato: **92 blocchi** in `backend/index/blocchi.json` (dai 549 iniziali, pri
 - `estrai_paragrafo(blocco_id)` — recupero esatto del blocco per la citazione.
 - `carica_markdown(farmaco_id)` — caricamento dell'intero foglio (fallback).
 
-La ricerca in home (`/api/search`) usa lo stesso retrieval del chatbot: BM25, sinonimi clinici (cuore → cardiaco, stomaco → addominale) e boost per intento (gravidanza, bambini, dosaggio, condivisione del farmaco). Non usa embeddings: resta una ricerca lessicale arricchita, adatta ai 91 blocchi della demo.
+La ricerca in home (`/api/search`) usa BM25, sinonimi clinici (cuore → cardiaco, stomaco → addominale) e boost per intento, perché deve rispondere a ogni battitura senza chiamare il provider di embeddings. Il chatbot usa invece il retrieval ibrido BM25 + embeddings.
 
 ## 5. Backend FastAPI
 
@@ -207,7 +207,7 @@ riscrivi query ─┬→ domanda sulla conversazione → risposta meta → END
 |------|---------|
 | `riscrivi` | usa lo storico per rendere autonoma la domanda di follow-up ("e per lo stomaco?" → "Con Augmentin, ci sono precauzioni per il mal di stomaco?"). Al primo turno salta la chiamata LLM. |
 | `meta` | riconosce domande sulla conversazione ("ti ho già chiesto dello stomaco?") e risponde dallo storico, senza retrieval. |
-| `recupera` | BM25 + sinonimi clinici + boost per intento sul farmaco selezionato, top 5 blocchi. |
+| `recupera` | Retrieval ibrido: BM25 + embeddings ChromaDB (`nvidia/nemotron-3-embed-1b:free`) con fusione RRF, sinonimi e boost per intento, top 5 blocchi. Se Chroma non è disponibile, fallback automatico a BM25. |
 | `espandi` | espansione LLM usata se il retrieval è vuoto o debole (score < 2.5). |
 | `recupera_espanso` | seconda ricerca con la query espansa. |
 | `genera` | costruisce il contesto con i **4 blocchi migliori**, ma per i blocchi lunghi passa solo l'estratto pertinente. |
@@ -377,6 +377,9 @@ Aprire `http://localhost:3000`.
 | `backend/graph/chat_graph.py` | grafo LangGraph, prompt, memoria, `run_chat` |
 | `backend/tools/markdown_tool.py` | BM25, estrazione paragrafo, caricamento markdown |
 | `backend/index/build_index.py` | indicizzazione markdown → `blocchi.json` |
+| `backend/scripts/ingest_vector_index.py` | ingestion separata blocchi → ChromaDB |
+| `backend/services/embeddings.py` | client embeddings OpenRouter |
+| `backend/services/vector_store.py` | adapter ChromaDB e query dense |
 | `backend/data/catalogo_farmaci.json` | preview dei 5 farmaci (6 sezioni) |
 | `backend/data/markdown/FI/*.md` | fonte di conoscenza del chatbot |
 | `frontend/src/app/page.tsx` | home con ricerca live |
@@ -460,6 +463,20 @@ della demo originale; dove c'è divergenza, vale questa sezione.
   "non darlo ad altre persone") ricevono automaticamente entrambe le fonti:
   il backend arricchisce le citazioni con i blocchi del contesto che
   condividono frasi distintive con la risposta.
+- **Retrieval ibrido**: BM25 + embeddings
+  (`nvidia/nemotron-3-embed-1b:free`) in ChromaDB, con fusione RRF. I blocchi
+  lunghi vengono suddivisi in chunk da ~1200 caratteri con overlap e
+  ricondotti al blocco padre per la citazione.
+- L'ingestion è separata dall'app ed è eseguita da
+  `backend/scripts/ingest_vector_index.py`; produce
+  `backend/index/chroma/` e `backend/index/vector_meta.json` (ignorati da Git).
+  Se l'indice Chroma non esiste o l'embedding fallisce, il backend continua a
+  funzionare con BM25.
+- La ricerca in home resta lessicale per non chiamare embeddings a ogni
+  battitura; il chatbot usa l'ibrido.
+- Modello embeddings: `nvidia/nemotron-3-embed-1b:free` (2048 dimensioni),
+  configurabile con `EMBEDDING_MODEL`. La modalità si può forzare con
+  `RETRIEVAL_MODE=bm25`.
 - I blocchi dell'indice vengono ripuliti dal footer legale AIFA, che non può
   quindi diventare una fonte citata.
 - Il contesto passa al modello anche il `blocco_id`. La chat mostra tutte le

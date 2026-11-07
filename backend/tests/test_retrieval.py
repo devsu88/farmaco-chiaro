@@ -1,4 +1,4 @@
-from services.retrieval import cerca, cerca_farmaci, tokenizza
+from services.retrieval import _fuse_rrf, cerca, cerca_farmaci, tokenizza
 
 
 def test_tokenizza_rimuove_stopword():
@@ -48,6 +48,25 @@ def test_intento_condivisione_trova_il_blocco_giusto():
     assert risultati
     assert risultati[0]["blocco_id"] == "plasil_sec0"
     assert "Non lo dia ad altre persone" in risultati[0]["testo"]
+
+
+def test_fusione_rrf_combina_bm25_e_denso():
+    bm25 = [
+        {"blocco_id": "aspirina_500_sec7", "score_bm25": 4.0, "score_dense": 0},
+        {"blocco_id": "aspirina_500_sec9", "score_bm25": 2.0, "score_dense": 0},
+    ]
+    denso = [
+        {"blocco_id": "aspirina_500_sec7", "score_dense": 0.9},
+        {"blocco_id": "aspirina_500_sec8", "score_dense": 0.8},
+    ]
+    risultati = _fuse_rrf(bm25, denso, limite=3)
+    assert risultati[0]["blocco_id"] == "aspirina_500_sec7"
+    assert {r["blocco_id"] for r in risultati} == {
+        "aspirina_500_sec7",
+        "aspirina_500_sec8",
+        "aspirina_500_sec9",
+    }
+    assert all("score_rrf" in r for r in risultati)
 
 
 def test_intento_condivisione_riconosce_i_familiari():
