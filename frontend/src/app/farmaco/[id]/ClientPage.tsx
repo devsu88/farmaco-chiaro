@@ -260,6 +260,19 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
                   glossario={versioneFacile.glossario}
                   domandeFarmacista={versioneFacile.domande_farmacista}
                 />
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <p className="text-xs text-blue-900">
+                    Qui trovi solo l&apos;essenziale. Per un dettaglio o un
+                    dubbio specifico, approfondisci con la chat.
+                  </p>
+                  <button
+                    onClick={() => setChatOpen(true)}
+                    disabled={chatOpen}
+                    className="mt-2 px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {chatOpen ? "Chat aperta" : "Approfondisci con la chat"}
+                  </button>
+                </div>
                 <div className="pt-4 border-t border-gray-100 space-y-2">
                   {versioneFacile.cached && (
                     <p className="text-xs text-gray-500 text-center">

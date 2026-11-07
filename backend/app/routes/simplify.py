@@ -6,7 +6,13 @@ from fastapi import APIRouter, HTTPException
 from app.llm import SIMPLIFY_MODEL, build_llm, has_valid_api_key
 from app.schemas import SimplifyRequest, SimplifyResponse
 from services import cache
-from services.simplify import fallback, pulisci_testo, semplifica, testo_da_catalogo
+from services.simplify import (
+    fallback,
+    pulisci_testo,
+    semplifica,
+    testo_da_catalogo,
+    testo_da_documento,
+)
 
 router = APIRouter()
 
@@ -27,7 +33,9 @@ def simplify(req: SimplifyRequest) -> dict:
         testo = req.testo
     else:
         try:
-            testo = testo_da_catalogo(req.farmaco_id, req.sezione)
+            testo = testo_da_documento(req.farmaco_id, req.sezione)
+            if not testo:
+                testo = testo_da_catalogo(req.farmaco_id, req.sezione)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc))
         except FileNotFoundError:

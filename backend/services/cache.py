@@ -18,7 +18,7 @@ CACHE_ROOT = DATA_DIR / "cache"
 SIMPLIFY_DIR = CACHE_ROOT / "simplify"
 TTS_DIR = CACHE_ROOT / "tts"
 
-SIMPLIFY_PROMPT_VERSION = "etr-v1"
+SIMPLIFY_PROMPT_VERSION = "etr-v2-concise"
 
 
 def _hash(*parts: str) -> str:

@@ -151,12 +151,15 @@ oppure, per semplificare un testo arbitrario:
 
 Comportamento:
 
-- con `sezione: "tutta"` prende dal catalogo le sezioni utili al paziente (`indicazioni`, `posologia`, `controindicazioni`, `avvertenze`) e le unisce;
-- chiama il modello con un **system prompt ETR** vincolante: frasi corte, una informazione per frase, voce attiva, niente subordinate, dosaggi e scadenze **esatti**, nessuna invenzione;
+- con `sezione: "tutta"` prende dai **blocchi del documento originale** le parti essenziali (`indicazioni`, `posologia`, `controindicazioni`, `avvertenze`), con il catalogo come fallback;
+- chiama il modello con un **system prompt ETR sintetico**: massimo 7 frasi, una informazione per frase, voce attiva, dosaggi esatti, nessuna invenzione;
+- il prompt dice esplicitamente di **non riassumere tutto il foglio**: la chat serve per approfondire;
 - chiede un output JSON con `una_frase`, `versione_facile[]`, `glossario[]`, `domande_farmacista[]`, `entita_verificate`;
+- limita l'output a 7 frasi, 3 voci di glossario e 3 domande, anche se il modello ne produce di più;
+- salva il risultato in cache persistente su disco (`data/cache/simplify/`); `forza: true` rigenera;
 - se la chiave API manca o la risposta non è JSON valido, restituisce un **fallback strutturato** invece di un errore 500.
 
-Il parser JSON è tollerante: rimuove i code fence ` ```json ` e, se necessario, estrae il primo oggetto tra `{` e `}`.
+Il parser JSON è tollerante: rimuove i code fence ` ```json ` e, se necessario, estrae il primo oggetto tra `{` e `}`. In caso di risposta non valida fa un secondo tentativo.
 
 ### `POST /api/chat`
 
@@ -435,6 +438,11 @@ della demo originale; dove c'è divergenza, vale questa sezione.
   in una **cache persistente su disco** in `backend/data/cache/simplify/`,
   con chiave `prompt_version + modello + hash(testo)`. Il parametro
   `forza: true` rigenera ignorando la cache.
+- La versione facile è volutamente **sintetica**: massimo 7 frasi, 3 voci di
+  glossario e 3 domande. Il prompt chiede solo l'essenziale (a cosa serve, come
+  si prende, principali avvertenze); i dettagli restano nel foglio originale e
+  nella chat. L'input viene preso dai blocchi del documento, così non si
+  mescolano formulazioni diverse.
 - Nuovo endpoint `POST /api/tts`: usa OpenRouter TTS
   (`heygen/heygen-voice-1-turbo:free`), converte PCM→WAV a 16 kHz e mette
   l'audio in cache in `backend/data/cache/tts/`. Il frontend riproduce il WAV

@@ -1,6 +1,6 @@
 import uuid
 
-from services.simplify import _chunk_text, semplifica
+from services.simplify import _chunk_text, _normalizza, semplifica
 
 RISPOSTA = """
 {"una_frase": "Serve per il dolore.",
@@ -39,6 +39,24 @@ def test_semplifica_testo_lungo_unisce_i_risultati():
     assert risultato["una_frase"] == "Serve per il dolore."
     assert risultato["versione_facile"]
     assert "Semplificato in" in risultato["entita_verificate"]["note"]
+
+
+def test_normalizza_limita_la_versione_facile():
+    risultato = _normalizza(
+        {
+            "una_frase": "Serve per il dolore.",
+            "versione_facile": [f"Frase {i}." for i in range(20)],
+            "glossario": [
+                {"termine": f"termine {i}", "spiegazione": "spiegazione"}
+                for i in range(10)
+            ],
+            "domande_farmacista": [f"Domanda {i}?" for i in range(10)],
+            "entita_verificate": {"dosaggi_preservati": True, "note": ""},
+        }
+    )
+    assert len(risultato["versione_facile"]) == 7
+    assert len(risultato["glossario"]) == 3
+    assert len(risultato["domande_farmacista"]) == 3
 
 
 def test_semplifica_usa_la_cache_persistente():

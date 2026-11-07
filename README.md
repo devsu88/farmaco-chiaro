@@ -91,4 +91,5 @@ inoltrano le richieste al backend tramite `BACKEND_URL`.
 - Le citazioni della chat vengono validate contro i blocchi dell'indice.
 - La sintesi vocale usa OpenRouter TTS (`TTS_MODEL`, `TTS_VOICE`) e non le voci del browser.
 - Il testo viene riprodotto in chunk da ~600 caratteri: la prima frase parte subito e le risposte restano leggere.
+- La versione facile mostra solo l'essenziale (max 7 frasi); i dettagli si approfondiscono con la chat.
 - Le semplificazioni e gli audio sono in cache su disco; `forza: true` rigenera la semplificazione.
