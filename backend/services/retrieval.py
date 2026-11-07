@@ -63,7 +63,6 @@ INTENTI = {
         "compresse",
         "mg",
         "ogni",
-        "ore",
         "giorno",
     ],
     "effetti_indesiderati": [
@@ -72,6 +71,34 @@ INTENTI = {
         "effetto collaterale",
     ],
     "alcol": ["alcol", "alcool", "alcolismo"],
+    "cuore": [
+        "cuore",
+        "cardiac",
+        "cardiopat",
+        "aritmia",
+        "infarto",
+        "ictus",
+        "ipertensione",
+    ],
+    "stomaco": [
+        "stomaco",
+        "addominal",
+        "gastric",
+        "gastrointestinal",
+        "nausea",
+        "vomito",
+    ],
+}
+
+# Sinonimi clinici ricorrenti: il paziente dice "cuore", il foglio dice
+# "cardiaco"; il paziente dice "mal di stomaco", il foglio "dolore addominale".
+SINONIMI = {
+    "cuore": ["cardiaco", "cardiaca", "cardiaci", "cardiache", "cardiopatia", "aritmia", "infarto", "ictus"],
+    "stomaco": ["addominale", "gastrico", "gastrica", "gastrointestinale", "nausea", "vomito"],
+    "fegato": ["epatico", "epatica", "epatite"],
+    "reni": ["renale", "renali"],
+    "pressione": ["ipertensione", "ipotensione"],
+    "mal di testa": ["cefalea", "emicrania"],
 }
 
 # Intenti che si riconoscono da frasi presenti nel corpo del blocco, non dal
@@ -121,6 +148,15 @@ def _load_blocchi() -> list[dict[str, Any]]:
 
 def blocchi_per_farmaco(farmaco_id: str) -> list[dict[str, Any]]:
     return [b for b in _load_blocchi() if b["farmaco_id"] == farmaco_id]
+
+
+def espandi_sinonimi(query: str) -> str:
+    query_lower = query.lower()
+    extra: list[str] = []
+    for chiave, sinonimi in SINONIMI.items():
+        if chiave in query_lower:
+            extra.extend(s for s in sinonimi if s not in query_lower)
+    return f"{query} {' '.join(extra)}".strip() if extra else query
 
 
 def tokenizza(query: str) -> list[str]:
@@ -213,7 +249,13 @@ def cerca(
     originale, anche quando la query usata per il matching è stata espansa.
     """
     blocchi = blocchi_per_farmaco(farmaco_id)
-    scored = _score(query, tokenizza(query), blocchi, query_intento=query_intento)
+    query_match = espandi_sinonimi(query)
+    scored = _score(
+        query_match,
+        tokenizza(query_match),
+        blocchi,
+        query_intento=query_intento or query,
+    )
 
     risultati: list[dict[str, Any]] = []
     for punteggio, blocco in scored[:limite]:
@@ -235,7 +277,7 @@ def cerca_farmaci(query: str, limite: int = 10) -> list[dict[str, Any]]:
     if not query.strip():
         return []
 
-    termini = tokenizza(query)
+    termini = tokenizza(espandi_sinonimi(query))
     punteggi: dict[str, float] = {}
     for blocco in _load_blocchi():
         farmaco_id = blocco["farmaco_id"]

@@ -1,5 +1,6 @@
 from services.citazioni import (
     affina_span,
+    estrai_estratto,
     filtra_fonti,
     fonte_da_blocco,
     valida_fonte,
@@ -54,6 +55,20 @@ def test_affina_span_restituisce_la_frase_pertinente():
     )
     assert "Non lo dia ad altre persone" in span
     assert len(span) < len(blocco)
+
+
+def test_estrai_estratto_trova_la_parte_pertinente():
+    blocco = "\n\n".join(
+        [
+            "Reazioni allergiche comuni: eruzioni cutanee e prurito.",
+            "Dolore toracico nel contesto di reazioni allergiche, "
+            "che può essere un sintomo di infarto cardiaco (sindrome di Kounis).",
+            "Conservare il medicinale fuori dalla portata dei bambini.",
+        ]
+    )
+    estratto = estrai_estratto(blocco, "ho problemi al cuore", max_caratteri=200)
+    assert "Kounis" in estratto
+    assert "bambini" not in estratto
 
 
 def test_filtra_fonti_scarta_le_fonti_poco_pertinenti():

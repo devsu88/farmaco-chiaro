@@ -94,6 +94,50 @@ def affina_span(
     return raffinato or span[:max_caratteri]
 
 
+def estrai_estratto(testo: str, query: str, max_caratteri: int = 1800) -> str:
+    """Estrae dal blocco il passaggio più pertinente alla domanda.
+
+    I blocchi lunghi (es. "Condizioni a cui prestare attenzione") contengono
+    decine di avvertenze. Passare l'intero blocco al modello disperde
+    l'informazione utile; passiamo invece la finestra di frasi più pertinente.
+    """
+    if len(testo) <= max_caratteri:
+        return testo
+
+    frasi = _frasi_con_offset(testo)
+    if not frasi:
+        return testo[:max_caratteri]
+
+    parole_query = _parole(query)
+    if not parole_query:
+        return testo[:max_caratteri]
+
+    punteggi = [
+        (len(parole_query & _parole(frase)), indice)
+        for indice, (_, _, frase) in enumerate(frasi)
+    ]
+    punteggi.sort(reverse=True)
+    if not punteggi or punteggi[0][0] == 0:
+        return testo[:max_caratteri]
+
+    indice_migliore = punteggi[0][1]
+    inizio, fine, _ = frasi[indice_migliore]
+
+    # Allarga la finestra alle frasi contigue, se restano nel limite.
+    for direzione in (-1, 1):
+        indice = indice_migliore + direzione
+        while 0 <= indice < len(frasi):
+            f_inizio, f_fine, _ = frasi[indice]
+            nuovo_inizio = min(inizio, f_inizio)
+            nuovo_fine = max(fine, f_fine)
+            if nuovo_fine - nuovo_inizio > max_caratteri:
+                break
+            inizio, fine = nuovo_inizio, nuovo_fine
+            indice += direzione
+
+    return testo[inizio:fine].strip() or testo[:max_caratteri]
+
+
 def fonte_da_blocco(
     blocco: dict[str, Any],
     query: str = "",

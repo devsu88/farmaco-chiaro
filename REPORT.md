@@ -118,7 +118,7 @@ Risultato: **92 blocchi** in `backend/index/blocchi.json` (dai 549 iniziali, pri
 - `estrai_paragrafo(blocco_id)` — recupero esatto del blocco per la citazione.
 - `carica_markdown(farmaco_id)` — caricamento dell'intero foglio (fallback).
 
-La ricerca in home (`/api/search`) usa un keyword matching più semplice sui blocchi e aggrega i punteggi per farmaco. Il "fallback semantico LLM" previsto è ancora uno stub: oggi la ricerca è **solo keyword**. Funziona bene sui nomi e sui sintomi presenti nel testo, ma non coglie sinonimi non indicizzati.
+La ricerca in home (`/api/search`) usa lo stesso retrieval del chatbot: BM25, sinonimi clinici (cuore → cardiaco, stomaco → addominale) e boost per intento (gravidanza, bambini, dosaggio, condivisione del farmaco). Non usa embeddings: resta una ricerca lessicale arricchita, adatta ai 91 blocchi della demo.
 
 ## 5. Backend FastAPI
 
@@ -194,31 +194,33 @@ Risposta:
 
 ## 6. Il chatbot LangGraph
 
-Il grafo è in `backend/graph/chat_graph.py`, compilato con `MemorySaver` (memoria in RAM, nessun database).
+Il grafo è in `backend/graph/chat_graph.py`, senza `MemorySaver`: la session è stateless e la history arriva dal client.
 
 ```
-ricevi → query_expansion → retrieval → rerank → estrai → genera ─┬→ output → END
-                                                                  └→ fallback → output → END
+riscrivi query ─┬→ domanda sulla conversazione → risposta meta → END
+                └→ recupera ─┬→ genera ─┬→ END
+                             │          └→ fallback → END
+                             └→ espandi → recupera → genera | fallback
 ```
 
 | Nodo | Cosa fa |
 |------|---------|
-| `ricevi` | normalizza lo stato iniziale |
-| `query_expansion` | l'LLM riscrive la domanda con sinonimi e termini tecnici ("mal di testa" → "cefalea, dolore testa, dosaggio pediatrico") |
-| `retrieval` | `cerca_testo` BM25 sul farmaco selezionato, top 5 blocchi |
-| `rerank` | l'LLM sceglie il blocco più pertinente; se non risponde o risponde male, si usa comunque il **miglior candidato** del retrieval (best effort) |
-| `estrai` | recupera il testo esatto del blocco per la citazione |
-| `genera` | costruisce il contesto con i **3 blocchi migliori** e chiede una risposta JSON con fonti |
-| `fallback` | se il retrieval non trova nulla, carica l'intero markdown e genera comunque una risposta |
-| `output` | prepara il risultato per l'API |
+| `riscrivi` | usa lo storico per rendere autonoma la domanda di follow-up ("e per lo stomaco?" → "Con Augmentin, ci sono precauzioni per il mal di stomaco?"). Al primo turno salta la chiamata LLM. |
+| `meta` | riconosce domande sulla conversazione ("ti ho già chiesto dello stomaco?") e risponde dallo storico, senza retrieval. |
+| `recupera` | BM25 + sinonimi clinici + boost per intento sul farmaco selezionato, top 5 blocchi. |
+| `espandi` | espansione LLM usata se il retrieval è vuoto o debole (score < 2.5). |
+| `recupera_espanso` | seconda ricerca con la query espansa. |
+| `genera` | costruisce il contesto con i **4 blocchi migliori**, ma per i blocchi lunghi passa solo l'estratto pertinente. |
+| `fallback` | se il modello dice "non trovato", cerca nel markdown completo i passaggi pertinenti e rigenera. |
+| `meta` | risponde a domande sulla conversazione usando solo lo storico. |
 
-Regole nel system prompt: rispondere **solo** con il contesto fornito, non inventare dosaggi o indicazioni, dichiarare esplicitamente quando l'informazione non c'è, citare sempre documento + sezione + paragrafo + span, non dare consigli medici personalizzati.
+Regole nel system prompt: rispondere **solo** con il contesto fornito, non inventare dosaggi o indicazioni, dichiarare esplicitamente quando l'informazione non c'è, citare sempre documento + sezione + paragrafo + span, non dare consigli medici personalizzati, risposte brevi (1-3 frasi per domande semplici).
 
-La risposta del modello viene normalizzata: le fonti "precise" sono quelle del retrieval (hanno offset e testo esatto); se il retrieval non ne ha, si usano quelle generate dal modello.
+La risposta del modello viene normalizzata: le fonti vengono validate contro i blocchi, ridotte alla frase pertinente, filtrate rispetto alla risposta e ordinate per importanza.
 
 ### Memoria
 
-`MemorySaver` usa `thread_id = sessione_id`. Il frontend mantiene lo `sessione_id` restituito dal backend e rimanda lo storico a ogni richiesta. Va notato che oggi il backend restituisce `"default"` quando il client non passa un id, quindi la memoria è **di fatto condivisa** tra sessioni; lo storico esplicito nel body è ciò che rende la conversazione coerente. È un punto da rifinire prima della demo (generare un UUID per sessione).
+La chat è stateless: il frontend genera/mantiene un `sessione_id` UUID e rimanda lo storico a ogni richiesta. Il backend usa lo storico per la riscrittura delle domande, per le domande meta e per la generazione, ma non conserva stato in RAM. Per la produzione è previsto un `SessionStore` (Redis/DB) con TTL.
 
 ## 7. Frontend
 
@@ -444,6 +446,15 @@ della demo originale; dove c'è divergenza, vale questa sezione.
   blocco, viene scelta la frase più pertinente (con la frase adiacente solo
   se condivide parole con domanda/risposta). Le fonti poco pertinenti
   rispetto alla risposta vengono scartate.
+- Il contesto della chat è **conversazionale**: una riscrittura LLM rende
+  autonome le domande di follow-up, le domande sulla conversazione
+  ("ti ho già chiesto...") vengono risposte dallo storico e, se il modello
+  dice "non trovato", parte un fallback sul markdown completo.
+- Per i blocchi lunghi viene passato al modello solo l'**estratto pertinente**
+  alla domanda, non l'intero blocco.
+- Aggiunti sinonimi clinici (cuore/cardiaco, stomaco/addominale,
+  fegato/epatico, reni/renale) e il riconoscimento dell'intento di
+  condivisione del farmaco.
 - I blocchi dell'indice vengono ripuliti dal footer legale AIFA, che non può
   quindi diventare una fonte citata.
 - Il contesto passa al modello anche il `blocco_id`. La chat mostra tutte le
