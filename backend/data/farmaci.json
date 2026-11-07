@@ -1,0 +1,42 @@
+[
+  {
+    "id": "tachipirina_1000",
+    "nome": "Tachipirina 1000 mg",
+    "principio_attivo": "paracetamolo",
+    "file_fi": "TACHIPIRINA_FI.md",
+    "file_rcp": "TACHIPIRINA_RCP.md",
+    "documento": "Foglio illustrativo Tachipirina 1000 mg – AIFA"
+  },
+  {
+    "id": "aspirina_500",
+    "nome": "Aspirina 500 mg",
+    "principio_attivo": "acido acetilsalicilico",
+    "file_fi": "ASPIRINA_FI.md",
+    "file_rcp": "ASPIRINA_RCP.md",
+    "documento": "Foglio illustrativo Aspirina 500 mg – AIFA"
+  },
+  {
+    "id": "augmentin",
+    "nome": "Augmentin",
+    "principio_attivo": "amoxicillina / acido clavulanico",
+    "file_fi": "AUGMENTIN_FI.md",
+    "file_rcp": "AUGMENTIN_RCP.md",
+    "documento": "Foglio illustrativo Augmentin – AIFA"
+  },
+  {
+    "id": "moment",
+    "nome": "Moment",
+    "principio_attivo": "ibuprofene",
+    "file_fi": "MOMENT_FI.md",
+    "file_rcp": "MOMENT_RCP.md",
+    "documento": "Foglio illustrativo Moment – AIFA"
+  },
+  {
+    "id": "plasil",
+    "nome": "Plasil",
+    "principio_attivo": "metoclopramide cloridrato",
+    "file_fi": "PLASIL_FI.md",
+    "file_rcp": "PLASIL_RCP.md",
+    "documento": "Foglio illustrativo Plasil – AIFA"
+  }
+]

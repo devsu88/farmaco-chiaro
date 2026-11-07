@@ -1,0 +1,13 @@
+{
+  "versione": 1,
+  "generato_il": "2026-11-07T09:53:43.714267+00:00",
+  "farmaci": 5,
+  "blocchi": 92,
+  "sorgenti": {
+    "tachipirina_1000": "0ad3583d55305c04603a73de7bbb1a48ab54baf364710639ada3555dee1cbbce",
+    "aspirina_500": "85a93c440127e8f955d61ada34bbec8f4e2dac774d7b3a6dac4515a12e8af635",
+    "augmentin": "9a44d090cdacc9cb15fd1128c0db261e2a2de07d8eb76cad0e1a4ab1e35ce0c9",
+    "moment": "629cb4d64fd248d9f1eacd690c8def87c02a5d69d58054bb2cc781ff356ee2d8",
+    "plasil": "3528951c130e2b9d87b899457e992846a3db2fa4c4c218b7b2eff2c2c8979ddd"
+  }
+}

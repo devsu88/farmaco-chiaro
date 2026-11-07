@@ -1,0 +1,89 @@
+# Farmaco Chiaro
+
+Fogli illustrativi AIFA leggibili: originale a sinistra, versione ETR a destra,
+chatbot con citazioni verificabili.
+
+Il report completo del progetto è in [`REPORT.md`](./REPORT.md).
+
+## Struttura
+
+```
+backend/    FastAPI + LangGraph, gestito con uv
+frontend/   Next.js 16 + React 19 + Tailwind
+infra/      (predisposto per deploy)
+```
+
+## Avvio rapido
+
+### Backend
+
+```bash
+cd backend
+cp .env.example .env        # inserire OPENROUTER_API_KEY
+uv sync
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Aprire `http://localhost:3000`.
+
+### Docker Compose
+
+```bash
+cp backend/.env.example backend/.env   # inserire OPENROUTER_API_KEY
+docker compose up --build
+```
+
+## Comandi utili
+
+```bash
+make index   # rigenera backend/index/blocchi.json
+make test    # pytest + eslint
+make build   # next build
+make dev     # backend + frontend in parallelo
+```
+
+## Dati
+
+- `backend/data/farmaci.json`: registro unico `id -> file markdown / documento`.
+- `backend/data/catalogo_farmaci.json`: preview per le card della home.
+- `backend/data/markdown/FI/*.md`: fonte di conoscenza per chat e documento originale.
+- `backend/index/blocchi.json`: indice generato, con `index_meta.json`.
+
+Dopo aver modificato i markdown:
+
+```bash
+make index
+```
+
+La CI verifica che l'indice committato sia aggiornato con
+`uv run python index/build_index.py --check`.
+
+## API principali
+
+| Metodo | Endpoint | Descrizione |
+|--------|----------|-------------|
+| GET | `/health` | liveness |
+| GET | `/ready` | readiness (registro + indice) |
+| GET | `/api/farmaci` | lista preview |
+| GET | `/api/farmaci/{id}` | dettaglio preview |
+| GET | `/api/farmaci/{id}/documento` | documento citabile a blocchi |
+| GET | `/api/search?q=` | ricerca per farmaco |
+| POST | `/api/simplify` | semplificazione ETR |
+| POST | `/api/chat` | chat con fonti verificate |
+
+Il browser chiama sempre le route proxy same-origin di Next (`/api/*`), che
+inoltrano le richieste al backend tramite `BACKEND_URL`.
+
+## Note di sicurezza
+
+- `.env` è ignorato da Git.
+- La chiave OpenRouter resta solo nel backend.
+- Le citazioni della chat vengono validate contro i blocchi dell'indice.

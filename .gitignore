@@ -1,0 +1,24 @@
+# Secrets
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Python
+backend/.venv/
+**/__pycache__/
+*.py[oc]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
