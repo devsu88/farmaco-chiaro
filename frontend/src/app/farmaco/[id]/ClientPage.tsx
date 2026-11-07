@@ -12,11 +12,18 @@ import {
 import { OriginalDocument } from "@/components/OriginalDocument"
 import { EasyText } from "@/components/EasyText"
 import { ChatButton } from "@/components/ChatButton"
+import { ChatPanel } from "@/components/ChatPanel"
 import { useSpeech } from "@/hooks/useSpeech"
 
 export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   const router = useRouter()
-  const { speak, stop, speaking, supported } = useSpeech()
+  const {
+    speak,
+    stop,
+    speaking,
+    supported,
+    error: speechError,
+  } = useSpeech()
 
   const [farmaco, setFarmaco] = useState<FarmacoDetail | null>(null)
   const [documento, setDocumento] = useState<DocumentoResponse | null>(null)
@@ -27,6 +34,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [simplifyError, setSimplifyError] = useState<string | null>(null)
+  const [chatOpen, setChatOpen] = useState(false)
   const [fonteEvidenziata, setFonteEvidenziata] = useState<FonteCitata | null>(
     null
   )
@@ -189,8 +197,8 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
               Torna alla lista
             </button>
             <ChatButton
-              farmacoId={farmacoId}
-              onHighlightSource={setFonteEvidenziata}
+              isOpen={chatOpen}
+              onToggle={() => setChatOpen((aperta) => !aperta)}
             />
             <button
               onClick={semplifica}
@@ -203,8 +211,14 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-8">
+        <div
+          className={`grid grid-cols-1 gap-6 ${
+            chatOpen
+              ? "lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(340px,0.9fr)]"
+              : "lg:grid-cols-2"
+          }`}
+        >
           <div className="space-y-4">
             <OriginalDocument
               documento={documento}
@@ -265,6 +279,14 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
                       La sintesi vocale non è supportata da questo browser.
                     </p>
                   )}
+                  {speechError && (
+                    <p
+                      role="alert"
+                      className="mt-2 text-xs text-red-700 text-center"
+                    >
+                      {speechError}
+                    </p>
+                  )}
                 </div>
               </>
             ) : !semplificando ? (
@@ -275,6 +297,15 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
                 </p>
               </div>
             ) : null}
+          </div>
+
+          <div className={chatOpen ? "" : "hidden"}>
+            <ChatPanel
+              farmacoId={farmacoId}
+              isOpen={chatOpen}
+              onClose={() => setChatOpen(false)}
+              onHighlightSource={setFonteEvidenziata}
+            />
           </div>
         </div>
       </main>

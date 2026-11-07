@@ -252,7 +252,7 @@ Azioni disponibili:
 | `OriginalDocument` | pannello originale a blocchi, con evidenziazione per `blocco_id` |
 | `HighlightSpan` | trova la prima occorrenza case-insensitive dello span e la racchiude in `<mark>` |
 | `EasyText` | una frase, elenco ETR, glossario, domande per il farmacista |
-| `ChatButton` + `ChatPopup` | apertura popup, invio messaggi, storico, fonti |
+| `ChatButton` + `ChatPanel` | apertura pannello laterale, invio messaggi, storico, fonti |
 
 ### TTS
 
@@ -363,7 +363,7 @@ Aprire `http://localhost:3000`.
 | `frontend/src/app/page.tsx` | home con ricerca live |
 | `frontend/src/app/farmaco/[id]/page.tsx` | server component, `await params` |
 | `frontend/src/app/farmaco/[id]/ClientPage.tsx` | split-screen, semplifica, TTS |
-| `frontend/src/components/ChatPopup.tsx` | chat, storico, fonti |
+| `frontend/src/components/ChatPanel.tsx` | pannello chat laterale, storico, fonti |
 | `frontend/src/components/HighlightSpan.tsx` | evidenziazione dello span citato |
 | `frontend/src/app/api/**/route.ts` | proxy verso FastAPI |
 

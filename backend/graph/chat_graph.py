@@ -1,8 +1,11 @@
 """Grafo LangGraph del chatbot.
 
 Flusso:
-    espandi query -> recupera blocchi -> genera risposta
-                                      -> fallback (markdown completo)
+    recupera (query originale) -> genera risposta
+                               -> espandi query -> recupera -> genera | fallback
+
+L'espansione LLM avviene solo se la query originale non trova blocchi: evita
+che l'elenco di sinonimi sposti il retrieval su sezioni non pertinenti.
 
 La sessione è stateless: la history arriva dal client e viene usata nel
 prompt. Non c'è MemorySaver, quindi due sessioni non possono mescolarsi.
@@ -60,15 +63,20 @@ Formato output richiesto (JSON):
 }
 """
 
-QUERY_EXPANSION_PROMPT = """Data questa domanda dell'utente su un farmaco, riscrivila espandendola con sinonimi e termini tecnici che potrebbero apparire nel foglio illustrativo AIFA.
+QUERY_EXPANSION_PROMPT = """Data questa domanda dell'utente su un farmaco, aggiungi al massimo 5 sinonimi o termini tecnici utili per la ricerca nel foglio illustrativo AIFA.
+
+Regole:
+- Mantieni la domanda originale all'inizio.
+- Aggiungi solo sinonimi o parole chiave pertinenti alla domanda.
+- NON elencare sezioni del foglio (posologia, controindicazioni, effetti indesiderati, gravidanza, interazioni, avvertenze).
+- Rispondi con una sola riga, niente spiegazioni.
 
 Esempi:
-- "mal di testa bambino" → "mal di testa, cefalea, dolore testa, dosaggio paracetamolo pediatrico, bambini"
-- "posologia" → "posologia, dose, dosaggio, quante volte al giorno, ogni quante ore"
-- "gravidanza" → "gravidanza, allattamento, fertilità, uso in gravidanza"
+- "mal di testa bambino" → "mal di testa bambino, cefalea, dolore alla testa, bambini"
+- "quante compresse al giorno" → "quante compresse al giorno, dose, dosaggio, posologia"
+- "posso in gravidanza" → "posso in gravidanza, gravidanza, allattamento"
 
-Domanda utente: {query}
-Rispondi solo con i termini espansi separati da virgola, niente altro."""
+Domanda utente: {query}"""
 
 GENERATION_PROMPT = """Domanda dell'utente: {user_query}
 
@@ -162,7 +170,15 @@ def _genera(
     }
 
 
-def nodo_query_expansion(state: ChatState) -> dict:
+def nodo_retrieval(state: ChatState) -> dict:
+    """Prima ricerca: usa la domanda originale, senza espansione LLM."""
+    query = state["messaggi"][-1]["testo"]
+    candidati = cerca_testo(query, state["farmaco_id"], limite=5)
+    return {"candidati_retrieval": candidati, "fallback_usato": False}
+
+
+def nodo_espandi_query(state: ChatState) -> dict:
+    """Espansione usata solo se la ricerca originale non trova nulla."""
     query = state["messaggi"][-1]["testo"]
     try:
         risposta = get_llm().invoke(
@@ -179,7 +195,7 @@ def nodo_query_expansion(state: ChatState) -> dict:
     return {"query_espansa": espansa or query}
 
 
-def nodo_retrieval(state: ChatState) -> dict:
+def nodo_retrieval_espanso(state: ChatState) -> dict:
     query = state.get("query_espansa") or state["messaggi"][-1]["testo"]
     candidati = cerca_testo(query, state["farmaco_id"], limite=5)
     return {"candidati_retrieval": candidati, "fallback_usato": False}
@@ -215,22 +231,32 @@ def nodo_fallback(state: ChatState) -> dict:
         }
 
 
-def dovrebbe_fare_fallback(state: ChatState) -> str:
-    return "fallback" if not state.get("candidati_retrieval") else "genera"
+def dopo_recupero(state: ChatState) -> str:
+    return "genera" if state.get("candidati_retrieval") else "espandi"
+
+
+def dopo_recupero_espanso(state: ChatState) -> str:
+    return "genera" if state.get("candidati_retrieval") else "fallback"
 
 
 def build_graph():
     builder = StateGraph(ChatState)
-    builder.add_node("espandi", nodo_query_expansion)
     builder.add_node("recupera", nodo_retrieval)
+    builder.add_node("espandi", nodo_espandi_query)
+    builder.add_node("recupera_espanso", nodo_retrieval_espanso)
     builder.add_node("genera", nodo_genera_risposta)
     builder.add_node("fallback", nodo_fallback)
 
-    builder.set_entry_point("espandi")
-    builder.add_edge("espandi", "recupera")
+    builder.set_entry_point("recupera")
     builder.add_conditional_edges(
         "recupera",
-        dovrebbe_fare_fallback,
+        dopo_recupero,
+        {"genera": "genera", "espandi": "espandi"},
+    )
+    builder.add_edge("espandi", "recupera_espanso")
+    builder.add_conditional_edges(
+        "recupera_espanso",
+        dopo_recupero_espanso,
         {"genera": "genera", "fallback": "fallback"},
     )
     builder.add_edge("genera", END)
