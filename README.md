@@ -92,24 +92,6 @@ cp backend/.env.example backend/.env   # inserire OPENROUTER_API_KEY
 docker compose up --build
 ```
 
-## Configurazione
-
-Le variabili sono documentate in `backend/.env.example`. Le principali:
-
-| Variabile | Default | Descrizione |
-|---|---|---|
-| `OPENROUTER_API_KEY` | nessuno | Chiave per LLM, embeddings e TTS |
-| `CHAT_MODEL` | `nvidia/nemotron-3-ultra-550b-a55b:free` | Modello della chat |
-| `SIMPLIFY_MODEL` | `nvidia/nemotron-3-ultra-550b-a55b:free` | Modello della semplificazione |
-| `RETRIEVAL_MODE` | `hybrid` | `hybrid` usa BM25 e ChromaDB, `bm25` solo la ricerca lessicale |
-| `EMBEDDING_MODEL` | `nvidia/nemotron-3-embed-1b:free` | Modello usato per l'indice vettoriale |
-| `CHROMA_COLLECTION` | `farmaci_blocchi` | Collezione ChromaDB |
-| `CHROMA_DIR` | `backend/index/chroma` | Directory dell'indice; su Vercel diventa `/tmp/chroma` |
-| `FRONTEND_ORIGINS` | `http://localhost:3000` | Origini CORS ammesse, separate da virgola |
-
-`EMBEDDING_MODEL` deve restare allineato al modello usato per costruire l'indice.
-Se cambia, rigenerare l'indice con `make ingest`.
-
 ## Comandi
 
 | Comando | Descrizione |
