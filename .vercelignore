@@ -1,0 +1,16 @@
+# File locali che non devono finire nel deploy
+.git
+.vercel
+.env*
+
+**/node_modules
+**/__pycache__
+backend/.venv
+backend/.pytest_cache
+backend/.ruff_cache
+backend/data/cache
+backend/.env
+backend/.env.*
+frontend/.next
+frontend/tsconfig.tsbuildinfo
+REPORT.md

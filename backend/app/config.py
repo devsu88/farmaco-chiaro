@@ -17,6 +17,11 @@ FARMACI_FILE = DATA_DIR / "farmaci.json"
 BLOCCHI_FILE = INDEX_DIR / "blocchi.json"
 INDEX_META_FILE = INDEX_DIR / "index_meta.json"
 
+# ChromaDB apre il database in scrittura: su Vercel il filesystem del codice è
+# in sola lettura, quindi l'indice viene copiato in /tmp al primo utilizzo.
+_default_chroma_dir = "/tmp/chroma" if os.getenv("VERCEL") else str(INDEX_DIR / "chroma")
+CHROMA_DIR = Path(os.getenv("CHROMA_DIR", _default_chroma_dir))
+
 MARKDOWN_DIR = DATA_DIR / "markdown"
 
 

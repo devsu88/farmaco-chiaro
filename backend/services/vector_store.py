@@ -8,23 +8,45 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 import threading
 from typing import Any
 
 import chromadb
 from chromadb.config import Settings
 
-from app.config import INDEX_DIR
+from app.config import CHROMA_DIR, INDEX_DIR
 from services.embeddings import EmbeddingError, embed_query
 
 logger = logging.getLogger(__name__)
 
-CHROMA_DIR = INDEX_DIR / "chroma"
+BUNDLED_CHROMA_DIR = INDEX_DIR / "chroma"
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "farmaci_blocchi")
 
 _lock = threading.Lock()
 _client = None
 _collection = None
+
+
+def _ensure_chroma_dir() -> bool:
+    """Rende disponibile una directory Chroma scrivibile.
+
+    Su Vercel ``CHROMA_DIR`` punta a ``/tmp/chroma``: se manca, copiamo l'indice
+    incluso nel deploy. In locale la directory è già quella del repository.
+    """
+    marker = CHROMA_DIR / "chroma.sqlite3"
+    if marker.exists():
+        return True
+    bundled_marker = BUNDLED_CHROMA_DIR / "chroma.sqlite3"
+    if CHROMA_DIR == BUNDLED_CHROMA_DIR or not bundled_marker.exists():
+        return False
+    try:
+        shutil.copytree(BUNDLED_CHROMA_DIR, CHROMA_DIR, dirs_exist_ok=True)
+        logger.info("Indice Chroma copiato in %s", CHROMA_DIR)
+        return True
+    except OSError:
+        logger.warning("Impossibile copiare l'indice Chroma in %s", CHROMA_DIR, exc_info=True)
+        return False
 
 
 def _get_collection():
@@ -34,7 +56,7 @@ def _get_collection():
     with _lock:
         if _collection is not None:
             return _collection
-        if not CHROMA_DIR.exists():
+        if not _ensure_chroma_dir():
             return None
         try:
             _client = chromadb.PersistentClient(

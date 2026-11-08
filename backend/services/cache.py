@@ -1,20 +1,27 @@
 """Cache persistente su disco per semplificazioni e audio TTS.
 
-I file sono scritti in ``data/cache`` e non vengono committati. La chiave
-include il modello e la versione del prompt: cambiando uno dei due, la cache
-precedente non viene più usata.
+I file sono scritti in ``data/cache`` (o nella directory indicata da
+``CACHE_DIR``) e non vengono committati. La chiave include il modello e la
+versione del prompt: cambiando uno dei due, la cache precedente non viene più
+usata.
+
+Su filesystem in sola lettura (es. serverless) la scrittura è best-effort: la
+richiesta va a buon fine anche se la cache non è disponibile.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 
 from app.config import DATA_DIR
 
-CACHE_ROOT = DATA_DIR / "cache"
+logger = logging.getLogger(__name__)
+
+CACHE_ROOT = Path(os.getenv("CACHE_DIR", str(DATA_DIR / "cache")))
 SIMPLIFY_DIR = CACHE_ROOT / "simplify"
 TTS_DIR = CACHE_ROOT / "tts"
 
@@ -26,10 +33,13 @@ def _hash(*parts: str) -> str:
 
 
 def _atomic_write(path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
-    tmp.write_bytes(data)
-    tmp.replace(path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        tmp.write_bytes(data)
+        tmp.replace(path)
+    except OSError:
+        logger.warning("Cache non scrivibile: %s", path, exc_info=True)
 
 
 def chiave_semplificazione(testo: str, modello: str) -> str:

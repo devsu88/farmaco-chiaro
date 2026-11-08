@@ -15,6 +15,12 @@ Ogni risposta è ancorata a una fonte verificabile. L'app non fa diagnosi e non
 sostituisce medico o farmacista: aiuta a capire il foglio e a parlare meglio con
 un professionista.
 
+## Demo
+
+Prova l'app online: **https://farmaco-chiaro.vercel.app**
+
+[![Farmaco Chiaro su Vercel](docs/vercel-demo.png)](https://farmaco-chiaro.vercel.app)
+
 ## Flusso principale
 
 1. Dalla home si cerca o si sceglie un farmaco.
