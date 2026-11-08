@@ -1,0 +1,100 @@
+{
+  "versione": 1,
+  "descrizione": "Domande reali con i blocchi che devono comparire nel top 5 del retrieval.",
+  "domande": [
+    {
+      "id": "tachipirina_indicazioni",
+      "farmaco_id": "tachipirina_1000",
+      "domanda": "A cosa serve la Tachipirina?",
+      "blocchi_attesi": ["tachipirina_1000_sec1"]
+    },
+    {
+      "id": "tachipirina_posologia",
+      "farmaco_id": "tachipirina_1000",
+      "domanda": "Quante compresse posso prendere al giorno?",
+      "blocchi_attesi": ["tachipirina_1000_sec9"]
+    },
+    {
+      "id": "tachipirina_gravidanza",
+      "farmaco_id": "tachipirina_1000",
+      "domanda": "Posso prenderla se sono incinta?",
+      "blocchi_attesi": ["tachipirina_1000_sec8"]
+    },
+    {
+      "id": "tachipirina_sovradosaggio",
+      "farmaco_id": "tachipirina_1000",
+      "domanda": "Cosa succede se prendo troppo paracetamolo?",
+      "blocchi_attesi": ["tachipirina_1000_sec10"]
+    },
+    {
+      "id": "tachipirina_alcol",
+      "farmaco_id": "tachipirina_1000",
+      "domanda": "Posso bere alcol con la Tachipirina?",
+      "blocchi_attesi": ["tachipirina_1000_sec7"]
+    },
+    {
+      "id": "aspirina_gravidanza",
+      "farmaco_id": "aspirina_500",
+      "domanda": "Posso prenderla se sono incinta?",
+      "blocchi_attesi": [
+        "aspirina_500_sec7",
+        "aspirina_500_sec8",
+        "aspirina_500_sec9"
+      ]
+    },
+    {
+      "id": "aspirina_bambini",
+      "farmaco_id": "aspirina_500",
+      "domanda": "Posso dare l'Aspirina a un bambino?",
+      "blocchi_attesi": ["aspirina_500_sec5"]
+    },
+    {
+      "id": "aspirina_sovradosaggio",
+      "farmaco_id": "aspirina_500",
+      "domanda": "Cosa fare in caso di dose eccessiva?",
+      "blocchi_attesi": ["aspirina_500_sec12"]
+    },
+    {
+      "id": "augmentin_condivisione",
+      "farmaco_id": "augmentin",
+      "domanda": "Posso darlo a mia sorella con mal di denti?",
+      "blocchi_attesi": ["augmentin_sec0", "augmentin_sec2"]
+    },
+    {
+      "id": "augmentin_posologia",
+      "farmaco_id": "augmentin",
+      "domanda": "Come si prende Augmentin?",
+      "blocchi_attesi": ["augmentin_sec1", "augmentin_sec8"]
+    },
+    {
+      "id": "moment_stomaco",
+      "farmaco_id": "moment",
+      "domanda": "Posso prenderlo con mal di stomaco?",
+      "blocchi_attesi": ["moment_sec4", "moment_sec13"]
+    },
+    {
+      "id": "moment_guida",
+      "farmaco_id": "moment",
+      "domanda": "Posso guidare dopo averlo preso?",
+      "blocchi_attesi": ["moment_sec4"]
+    },
+    {
+      "id": "plasil_gravidanza",
+      "farmaco_id": "plasil",
+      "domanda": "Posso prenderlo se sono incinta?",
+      "blocchi_attesi": ["plasil_sec7", "plasil_sec8"]
+    },
+    {
+      "id": "plasil_dimenticanza",
+      "farmaco_id": "plasil",
+      "domanda": "Cosa fare se ho dimenticato una dose?",
+      "blocchi_attesi": ["plasil_sec13"]
+    },
+    {
+      "id": "plasil_effetti",
+      "farmaco_id": "plasil",
+      "domanda": "Quali sono gli effetti indesiderati?",
+      "blocchi_attesi": ["plasil_sec14"]
+    }
+  ]
+}

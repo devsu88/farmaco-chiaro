@@ -80,6 +80,18 @@ def split_into_blocks(markdown_text: str, farmaco_id: str, documento: str) -> li
         testo_pulito = clean_text(testo)
         if not testo_pulito:
             return
+        # Il titolo del paragrafo è contenuto del foglio illustrativo: lo
+        # includiamo nel blocco, così è visibile nell'originale e citabile
+        # anche quando il corpo è breve o generico. Non creiamo però blocchi
+        # nuovi per i paragrafi che prima erano vuoti: gli id restano stabili.
+        if current_subsection and current_subsection != "1":
+            intestazione = clean_text(current_subsection)
+            if intestazione and not testo_pulito.lower().startswith(
+                intestazione.lower()
+            ):
+                testo_pulito = f"{intestazione}\n{testo_pulito}"
+        if not testo_pulito:
+            return
         block_id = f"{farmaco_id}_sec{block_counter}"
         blocks.append(
             {

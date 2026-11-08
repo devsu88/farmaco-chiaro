@@ -123,6 +123,7 @@ SINONIMI = {
     "pressione": ["ipertensione", "ipotensione"],
     "mal di testa": ["cefalea", "emicrania"],
     "denti": ["dente", "dentale", "dentali", "odontoiatrico"],
+    "alcol": ["alcool", "alcolismo"],
 }
 
 # Intenti che si riconoscono da frasi presenti nel corpo del blocco, non dal

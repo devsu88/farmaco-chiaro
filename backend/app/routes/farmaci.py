@@ -7,8 +7,16 @@ from fastapi import APIRouter, HTTPException
 
 from app import farmaci
 from app.config import CATALOGO_FILE
-from app.schemas import DocumentoResponse, FarmacoDetail, FarmacoPreview
+from app.schemas import (
+    DocumentoResponse,
+    FarmacoDetail,
+    FarmacoPreview,
+    GuidaResponse,
+    SchedaResponse,
+)
 from services.documento import documento as documento_farmaco
+from services.guida import guida as guida_farmaco
+from services.scheda import scheda as scheda_farmaco
 
 router = APIRouter()
 
@@ -59,3 +67,21 @@ def get_documento(farmaco_id: str) -> dict:
             detail="Documento non indicizzato. Esegui index/build_index.py",
         )
     return risultato
+
+
+@router.get("/farmaci/{farmaco_id}/guida", response_model=GuidaResponse)
+def get_guida(farmaco_id: str) -> dict:
+    """Percorso guidato in quattro schermate, estratto dal foglio."""
+    try:
+        return guida_farmaco(farmaco_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Farmaco {farmaco_id} non trovato")
+
+
+@router.get("/farmaci/{farmaco_id}/scheda", response_model=SchedaResponse)
+def get_scheda(farmaco_id: str) -> dict:
+    """Scheda condivisibile per un familiare o un caregiver."""
+    try:
+        return scheda_farmaco(farmaco_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Farmaco {farmaco_id} non trovato")

@@ -17,6 +17,11 @@ Prova l'app online: **https://farmaco-chiaro.vercel.app**
 ## Funzionalità
 
 - **Documento originale integrale**, suddiviso in blocchi citabili e sempre consultabile.
+- **Percorso guidato "Una cosa alla volta"**: quattro schermate semplici con audio,
+  fonte e modalità alto contrasto.
+- **"Cosa faccio se…?"**: risposte brevi e citate per dimenticanza, dose doppia,
+  reazione avversa e alcol.
+- **Scheda condivisibile con QR e WhatsApp** per familiari e caregiver.
 - **Versione semplificata su richiesta**: frase di sintesi, punti chiave, glossario
   dei termini difficili e domande da fare al farmacista.
 - **Chat con fonti verificabili**: ogni risposta riporta i blocchi usati e un click

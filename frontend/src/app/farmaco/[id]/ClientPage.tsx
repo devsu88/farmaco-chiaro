@@ -13,6 +13,7 @@ import { OriginalDocument } from "@/components/OriginalDocument"
 import { EasyText } from "@/components/EasyText"
 import { ChatButton } from "@/components/ChatButton"
 import { ChatPanel } from "@/components/ChatPanel"
+import { ScenarioWizard } from "@/components/ScenarioWizard"
 import { useTTS } from "@/hooks/useTTS"
 
 export default function ClientPage({ farmacoId }: { farmacoId: string }) {
@@ -35,6 +36,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [simplifyError, setSimplifyError] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
+  const [scenarioOpen, setScenarioOpen] = useState(false)
   const [fonteEvidenziata, setFonteEvidenziata] = useState<FonteCitata | null>(
     null
   )
@@ -97,6 +99,28 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
       setFarmaco(farmacoCaricato)
       setDocumento(documentoCaricato)
       setLoading(false)
+
+      // La modalità guidata e gli scenari possono aprire il foglio su un
+      // blocco preciso passando ?fonte=<blocco_id>.
+      const bloccoId = new URLSearchParams(window.location.search).get("fonte")
+      if (bloccoId) {
+        for (const sezione of documentoCaricato.sezioni) {
+          const blocco = sezione.blocchi.find(
+            (item) => item.blocco_id === bloccoId
+          )
+          if (!blocco) continue
+          setFonteEvidenziata({
+            blocco_id: blocco.blocco_id,
+            documento: documentoCaricato.documento,
+            sezione: sezione.titolo,
+            paragrafo: blocco.paragrafo,
+            testo_evidenziato: blocco.testo,
+            verificata: true,
+          })
+          setFocusFonte((valore) => valore + 1)
+          break
+        }
+      }
     }
 
     carica()
@@ -210,6 +234,24 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
               isOpen={chatOpen}
               onToggle={() => setChatOpen((aperta) => !aperta)}
             />
+            <button
+              onClick={() => router.push(`/farmaco/${farmacoId}/guida`)}
+              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Guidami
+            </button>
+            <button
+              onClick={() => setScenarioOpen(true)}
+              className="px-4 py-2 text-sm font-medium bg-amber-500 text-white rounded hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              Cosa faccio se…?
+            </button>
+            <button
+              onClick={() => router.push(`/scheda/${farmacoId}`)}
+              className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            >
+              Condividi
+            </button>
             <button
               onClick={() => semplifica()}
               disabled={semplificando}
@@ -345,6 +387,13 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
           </div>
         </div>
       </main>
+
+      <ScenarioWizard
+        farmacoId={farmacoId}
+        open={scenarioOpen}
+        onClose={() => setScenarioOpen(false)}
+        onHighlightSource={evidenziaFonte}
+      />
     </div>
   )
 }

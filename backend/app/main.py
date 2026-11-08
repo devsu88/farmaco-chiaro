@@ -12,6 +12,7 @@ from app import farmaci
 from app.config import BLOCCHI_FILE, FRONTEND_ORIGINS
 from app.routes import chat, search, simplify, tts
 from app.routes import farmaci as farmaci_routes
+from app.routes import scenari as scenari_routes
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -32,6 +33,7 @@ app.include_router(search.router, prefix="/api")
 app.include_router(simplify.router, prefix="/api")
 app.include_router(tts.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(scenari_routes.router, prefix="/api")
 
 
 @app.exception_handler(Exception)

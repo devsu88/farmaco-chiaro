@@ -113,6 +113,48 @@ def affina_span(
     return raffinato or span[:max_caratteri]
 
 
+def finestra_frasi(
+    testo: str,
+    parole_chiave: tuple[str, ...] | list[str] = (),
+    max_frasi: int = 4,
+    max_caratteri: int = 700,
+) -> str:
+    """Sceglie una finestra contigua di frasi, adatta alla lettura guidata.
+
+    La finestra resta una sottostringa esatta del blocco, così può essere
+    evidenziata nel foglio originale senza ricostruire il testo. Con
+    ``parole_chiave`` privilegia le frasi che contengono i termini richiesti;
+    senza parole chiave restituisce la prima finestra breve.
+    """
+    frasi = _frasi_con_offset(testo)
+    if not frasi:
+        return testo[:max_caratteri].strip()
+
+    parole = [parola.lower() for parola in parole_chiave]
+    migliore_testo = ""
+    migliore_punteggio = -1
+    for inizio_indice in range(len(frasi)):
+        for numero in range(1, max_frasi + 1):
+            fine_indice = inizio_indice + numero
+            if fine_indice > len(frasi):
+                break
+            inizio = frasi[inizio_indice][0]
+            fine = frasi[fine_indice - 1][1]
+            if fine - inizio > max_caratteri:
+                break
+            candidato = testo[inizio:fine].strip()
+            punteggio = (
+                sum(1 for parola in parole if parola in candidato.lower())
+                if parole
+                else 0
+            )
+            if punteggio > migliore_punteggio:
+                migliore_punteggio = punteggio
+                migliore_testo = candidato
+
+    return migliore_testo or testo[:max_caratteri].strip()
+
+
 def estrai_estratto(testo: str, query: str, max_caratteri: int = 1800) -> str:
     """Estrae dal blocco il passaggio più pertinente alla domanda.
 

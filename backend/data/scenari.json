@@ -1,0 +1,50 @@
+{
+  "versione": 1,
+  "nota": "Testi di sicurezza rivisti per la demo. Le risposte sono sempre estratte dal foglio illustrativo; le azioni sono indicazioni generali e non sostituiscono medico o farmacista.",
+  "scenari": [
+    {
+      "id": "dose_dimenticata",
+      "titolo": "Ho dimenticato una dose",
+      "icona": "orologio",
+      "descrizione": "Cosa fare se salta una dose.",
+      "query": "ho dimenticato una dose non prenda una dose doppia compensare la dimenticanza",
+      "ancore": ["non prenda una dose doppia", "dimenticanza", "dose doppia", "dimentic"],
+      "azione": "Non prenda una dose doppia. Se è quasi ora della dose successiva, salti quella dimenticata e riprenda lo schema normale. In caso di dubbio chieda al medico o al farmacista.",
+      "urgenza": "normale",
+      "fallback_risposta": "Il foglio illustrativo non riporta una regola specifica per la dose dimenticata. Non prenda una dose doppia e chieda al medico o al farmacista."
+    },
+    {
+      "id": "dose_doppia",
+      "titolo": "Ho preso una dose doppia",
+      "icona": "doppia",
+      "descrizione": "Cosa fare se ha preso troppo medicinale.",
+      "query": "ho preso una dose doppia troppo farmaco cosa devo fare",
+      "ancore": ["di quanto deve", "dose doppia", "sovrados", "overdose"],
+      "azione": "Non prenda altre dosi. Contatti subito il medico o un Centro Antiveleni. Se compaiono sonnolenza, difficoltà a respirare o altri sintomi gravi chiami il 112.",
+      "urgenza": "contatta_medico",
+      "fallback_risposta": "Il foglio illustrativo non riporta indicazioni specifiche per una dose doppia. Contatti subito il medico o un Centro Antiveleni."
+    },
+    {
+      "id": "reazione_avversa",
+      "titolo": "Sto male dopo averlo preso",
+      "icona": "allerta",
+      "descrizione": "Cosa fare se compare una reazione.",
+      "query": "sto male dopo aver preso il farmaco reazione allergica effetti indesiderati gravi",
+      "ancore": ["contatti immediatamente il medico", "interrompa immediatamente", "difficoltà a respirare", "reazione allergica", "effetti indesiderati", "medico"],
+      "azione": "Se ha difficoltà a respirare, gonfiore di viso o gola, svenimento o eruzione estesa, chiami subito il 112. Per altri sintomi contatti il medico.",
+      "urgenza": "emergenza",
+      "fallback_risposta": "Il foglio illustrativo non riporta una reazione specifica. Se sta male contatti il medico; in caso di sintomi gravi chiami il 112."
+    },
+    {
+      "id": "alcol",
+      "titolo": "Posso bere alcol?",
+      "icona": "bicchiere",
+      "descrizione": "Cosa dice il foglio sull'alcol.",
+      "query": "posso bere alcol con questo farmaco",
+      "ancore": ["consumare alcol", "beva alcool", "con alcol", "con alcool", "alcol", "alcool"],
+      "azione": "Chieda al medico o al farmacista prima di bere alcol. L'alcol può aumentare alcuni effetti indesiderati. Non guidi se si sente male.",
+      "urgenza": "normale",
+      "fallback_risposta": "Il foglio illustrativo non riporta indicazioni specifiche sull'alcol. Chieda al medico o al farmacista."
+    }
+  ]
+}

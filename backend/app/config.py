@@ -14,6 +14,7 @@ INDEX_DIR = BASE_DIR / "index"
 
 CATALOGO_FILE = DATA_DIR / "catalogo_farmaci.json"
 FARMACI_FILE = DATA_DIR / "farmaci.json"
+SCENARI_FILE = DATA_DIR / "scenari.json"
 BLOCCHI_FILE = INDEX_DIR / "blocchi.json"
 INDEX_META_FILE = INDEX_DIR / "index_meta.json"
 

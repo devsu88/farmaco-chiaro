@@ -69,6 +69,61 @@ export interface ChatResponse {
   fallback_usato: boolean
 }
 
+export interface SchermataGuida {
+  id: string
+  titolo: string
+  icona: string
+  descrizione: string
+  testi: string[]
+  fonti: FonteCitata[]
+}
+
+export interface GuidaResponse {
+  farmaco_id: string
+  nome: string
+  principio_attivo: string
+  documento: string
+  schermate: SchermataGuida[]
+  riepilogo: string[]
+}
+
+export interface ScenarioPreview {
+  id: string
+  titolo: string
+  icona: string
+  descrizione: string
+  urgenza: "normale" | "contatta_medico" | "emergenza"
+}
+
+export interface ScenariResponse {
+  scenari: ScenarioPreview[]
+}
+
+export interface ScenarioResponse {
+  scenario_id: string
+  farmaco_id: string
+  titolo: string
+  risposta: string
+  azione: string
+  urgenza: "normale" | "contatta_medico" | "emergenza"
+  trovato: boolean
+  fonti: FonteCitata[]
+}
+
+export interface SchedaResponse {
+  farmaco_id: string
+  nome: string
+  principio_attivo: string
+  documento: string
+  a_cosa_serve: string
+  come_si_prende: string
+  cosa_non_fare: string
+  quando_medico: string
+  dose_dimenticata: string
+  fonti: FonteCitata[]
+  disclaimer: string
+}
+
 async function fetchJSON<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const res = await fetch(input, {
     headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
@@ -122,5 +177,22 @@ export const api = {
     fetchJSON("/api/chat", {
       method: "POST",
       body: JSON.stringify(body),
+    }),
+
+  getGuida: (id: string): Promise<GuidaResponse> =>
+    fetchJSON(`/api/farmaco/${encodeURIComponent(id)}/guida`),
+
+  getScheda: (id: string): Promise<SchedaResponse> =>
+    fetchJSON(`/api/farmaco/${encodeURIComponent(id)}/scheda`),
+
+  getScenari: (): Promise<ScenariResponse> => fetchJSON("/api/scenari"),
+
+  risolviScenario: (
+    scenarioId: string,
+    farmacoId: string
+  ): Promise<ScenarioResponse> =>
+    fetchJSON(`/api/scenari/${encodeURIComponent(scenarioId)}`, {
+      method: "POST",
+      body: JSON.stringify({ farmaco_id: farmacoId }),
     }),
 }
