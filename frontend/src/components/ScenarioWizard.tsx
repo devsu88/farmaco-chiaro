@@ -44,18 +44,46 @@ export function ScenarioWizard({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const previousFocus = useRef<HTMLElement | null>(null)
   const { speak, stop, speaking, loading: ttsLoading, error: ttsError } = useTTS()
 
   useEffect(() => {
     if (!open) return
+    previousFocus.current = document.activeElement as HTMLElement | null
     closeRef.current?.focus()
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose()
+      if (event.key === "Escape") {
+        stop()
+        setRisultato(null)
+        setError(null)
+        onClose()
+        return
+      }
+      if (event.key !== "Tab") return
+
+      const focusabili = panelRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+      if (!focusabili || focusabili.length === 0) return
+      const primo = focusabili[0]
+      const ultimo = focusabili[focusabili.length - 1]
+      if (event.shiftKey && document.activeElement === primo) {
+        event.preventDefault()
+        ultimo.focus()
+      } else if (!event.shiftKey && document.activeElement === ultimo) {
+        event.preventDefault()
+        primo.focus()
+      }
     }
+
     document.addEventListener("keydown", onKeyDown)
-    return () => document.removeEventListener("keydown", onKeyDown)
-  }, [open, onClose])
+    return () => {
+      document.removeEventListener("keydown", onKeyDown)
+      previousFocus.current?.focus()
+    }
+  }, [open, onClose, stop])
 
   useEffect(() => {
     if (!open) return
@@ -114,6 +142,7 @@ export function ScenarioWizard({
       }}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="scenario-titolo"

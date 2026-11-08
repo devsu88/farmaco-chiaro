@@ -35,3 +35,11 @@ def test_scheda_non_contiene_dati_personali():
 def test_scheda_farmaco_inesistente():
     with pytest.raises(KeyError):
         scheda("farmaco_inesistente")
+
+
+def test_scheda_segnala_quando_la_dose_dimenticata_e_un_indicazione_generale():
+    tachipirina = scheda("tachipirina_1000")
+    assert tachipirina["dose_dimenticata_trovata"] is False
+
+    augmentin = scheda("augmentin")
+    assert augmentin["dose_dimenticata_trovata"] is True

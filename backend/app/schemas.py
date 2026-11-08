@@ -154,5 +154,6 @@ class SchedaResponse(BaseModel):
     cosa_non_fare: str
     quando_medico: str
     dose_dimenticata: str
+    dose_dimenticata_trovata: bool = True
     fonti: list[FonteCitata] = Field(default_factory=list)
     disclaimer: str

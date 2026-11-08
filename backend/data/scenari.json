@@ -19,7 +19,8 @@
       "icona": "doppia",
       "descrizione": "Cosa fare se ha preso troppo medicinale.",
       "query": "ho preso una dose doppia troppo farmaco cosa devo fare",
-      "ancore": ["di quanto deve", "dose doppia", "sovrados", "overdose"],
+      "ancore": ["se prende più", "di quanto deve", "overdose"],
+      "ancore_negative": ["dimenticanza", "compensare"],
       "azione": "Non prenda altre dosi. Contatti subito il medico o un Centro Antiveleni. Se compaiono sonnolenza, difficoltà a respirare o altri sintomi gravi chiami il 112.",
       "urgenza": "contatta_medico",
       "fallback_risposta": "Il foglio illustrativo non riporta indicazioni specifiche per una dose doppia. Contatti subito il medico o un Centro Antiveleni."
@@ -30,7 +31,7 @@
       "icona": "allerta",
       "descrizione": "Cosa fare se compare una reazione.",
       "query": "sto male dopo aver preso il farmaco reazione allergica effetti indesiderati gravi",
-      "ancore": ["contatti immediatamente il medico", "interrompa immediatamente", "difficoltà a respirare", "reazione allergica", "effetti indesiderati", "medico"],
+      "ancore": ["contatti immediatamente", "interrompa immediatamente", "pronto soccorso", "difficoltà a respirare", "gonfiore del viso", "reazione allergica"],
       "azione": "Se ha difficoltà a respirare, gonfiore di viso o gola, svenimento o eruzione estesa, chiami subito il 112. Per altri sintomi contatti il medico.",
       "urgenza": "emergenza",
       "fallback_risposta": "Il foglio illustrativo non riporta una reazione specifica. Se sta male contatti il medico; in caso di sintomi gravi chiami il 112."

@@ -180,10 +180,20 @@ export function ShareCard({ farmacoId }: { farmacoId: string }) {
           testo={scheda.quando_medico}
         />
         <Sezione
-          titolo="Se dimentica una dose"
+          titolo={
+            scheda.dose_dimenticata_trovata
+              ? "Se dimentica una dose"
+              : "Se dimentica una dose (indicazione generale)"
+          }
           icona="⏰"
           testo={scheda.dose_dimenticata}
         />
+        {!scheda.dose_dimenticata_trovata && (
+          <p className="-mt-2 px-1 text-xs text-amber-800">
+            Il foglio illustrativo non riporta una regola specifica per la dose
+            dimenticata: questo è un consiglio generale di sicurezza.
+          </p>
+        )}
 
         <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-5">
           {qr ? (
@@ -231,8 +241,9 @@ export function ShareCard({ farmacoId }: { farmacoId: string }) {
           {scheda.disclaimer}
         </p>
         <p className="text-[11px] text-gray-400">
-          Fonti: {scheda.fonti.length} passaggi del foglio illustrativo AIFA.
-          Ogni testo è riportato senza modifiche.
+          I testi delle sezioni principali sono riportati dal foglio
+          illustrativo AIFA; le indicazioni generali di sicurezza sono
+          segnalate. Fonti: {scheda.fonti.length} passaggi del foglio.
         </p>
       </main>
     </div>

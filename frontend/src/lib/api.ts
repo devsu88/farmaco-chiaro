@@ -120,6 +120,7 @@ export interface SchedaResponse {
   cosa_non_fare: string
   quando_medico: string
   dose_dimenticata: string
+  dose_dimenticata_trovata: boolean
   fonti: FonteCitata[]
   disclaimer: string
 }

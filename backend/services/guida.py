@@ -69,6 +69,16 @@ SCHERMATE: list[dict[str, Any]] = [
             "se prende più",
             "avvertenze e precauzioni",
             "durante il trattamento",
+            "condizioni a cui",
+        ),
+        "richiede": (
+            "medico",
+            "farmacista",
+            "immediatamente",
+            "pronto soccorso",
+            "112",
+            "interrompa",
+            "contatti",
         ),
         "parole": (
             "medico",
@@ -93,6 +103,7 @@ _TITOLI_PARAGRAFO = {
     "se prende più": 3,
     "come prendere": 3,
     "non prenda": 3,
+    "condizioni a cui": 3,
     "avvertenze e precauzioni": 2,
     "durante il trattamento": 1,
 }
@@ -112,21 +123,19 @@ def _punteggio_blocco(blocco: dict[str, Any], schermata: dict[str, Any]) -> int:
     return punteggio
 
 
-def _scegli_blocco(
+def _candidati(
     blocchi: list[dict[str, Any]],
     schermata: dict[str, Any],
     escludi: set[str],
-) -> dict[str, Any] | None:
+) -> list[dict[str, Any]]:
     candidati = [
         (punteggio, blocco)
         for blocco in blocchi
         if blocco["id"] not in escludi
         and (punteggio := _punteggio_blocco(blocco, schermata)) > 0
     ]
-    if not candidati:
-        return None
     candidati.sort(key=lambda item: (item[0], len(item[1]["testo"])), reverse=True)
-    return candidati[0][1]
+    return [blocco for _, blocco in candidati]
 
 
 def _prima_frase(testo: str, limite: int = 150) -> str:
@@ -134,6 +143,22 @@ def _prima_frase(testo: str, limite: int = 150) -> str:
     if len(frase) > limite:
         frase = frase[: limite - 1].rstrip() + "…"
     return frase
+
+
+def _frase_riepilogo(testo: str, parole_chiave: tuple[str, ...]) -> str:
+    """Sceglie la frase più rappresentativa, non solo la prima."""
+    frasi = [frase.strip() for frase in re.split(r"(?<=[.!?])\s+", testo) if frase.strip()]
+    if not frasi:
+        return ""
+    if not parole_chiave:
+        return _prima_frase(frasi[0])
+    migliore = max(
+        frasi,
+        key=lambda frase: sum(
+            1 for parola in parole_chiave if parola in frase.lower()
+        ),
+    )
+    return _prima_frase(migliore)
 
 
 def _costruisci_schermata(
@@ -173,16 +198,28 @@ def guida(farmaco_id: str) -> dict[str, Any]:
 
     schermate: list[dict[str, Any]] = []
     usati: set[str] = set()
-    for schermata in SCHERMATE:
-        blocco = _scegli_blocco(blocchi, schermata, usati)
-        if blocco is None:
+    for specifica in SCHERMATE:
+        candidati = _candidati(blocchi, specifica, usati)
+        scelta: dict[str, Any] | None = None
+        for blocco in candidati:
+            proposta = _costruisci_schermata(specifica, blocco)
+            richiede = specifica.get("richiede") or ()
+            if not richiede or any(
+                parola in proposta["testi"][0].lower() for parola in richiede
+            ):
+                scelta = proposta
+                break
+        if scelta is None and candidati:
+            scelta = _costruisci_schermata(specifica, candidati[0])
+        if scelta is None:
             continue
-        usati.add(blocco["id"])
-        schermate.append(_costruisci_schermata(schermata, blocco))
+        usati.add(scelta["fonti"][0]["blocco_id"])
+        schermate.append(scelta)
 
     if not schermate:
         raise KeyError(f"Nessuna schermata disponibile per {farmaco_id}")
 
+    per_id = {specifica["id"]: specifica for specifica in SCHERMATE}
     return {
         "farmaco_id": farmaco_id,
         "nome": farmaco.nome,
@@ -190,6 +227,10 @@ def guida(farmaco_id: str) -> dict[str, Any]:
         "documento": farmaco.documento,
         "schermate": schermate,
         "riepilogo": [
-            _prima_frase(schermata["testi"][0]) for schermata in schermate
+            _frase_riepilogo(
+                schermata["testi"][0],
+                per_id[schermata["id"]]["parole"],
+            )
+            for schermata in schermate
         ],
     }

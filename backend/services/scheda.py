@@ -43,6 +43,7 @@ def scheda(farmaco_id: str) -> dict[str, Any]:
         "documento": farmaco.documento,
         **sezioni,
         "dose_dimenticata": dimenticanza["risposta"],
+        "dose_dimenticata_trovata": dimenticanza["trovato"],
         "fonti": fonti,
         "disclaimer": DISCLAIMER,
     }

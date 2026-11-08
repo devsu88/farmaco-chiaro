@@ -9,6 +9,7 @@ personalizzati.
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from typing import Any
 
@@ -45,9 +46,20 @@ def _trova_scenario(scenario_id: str) -> dict[str, Any]:
     raise KeyError(f"Scenario non trovato: {scenario_id}")
 
 
+def _trova_ancora(
+    testo: str, ancore: list[str]
+) -> tuple[int, int, str] | None:
+    """Trova la prima ancora, ignorando a capo e spazi multipli."""
+    for ancora in ancore:
+        pattern = r"\s+".join(re.escape(parte) for parte in ancora.split())
+        trovata = re.search(pattern, testo, re.IGNORECASE)
+        if trovata:
+            return trovata.start(), trovata.end(), ancora
+    return None
+
+
 def _contiene_ancora(testo: str, ancore: list[str]) -> bool:
-    testo_lower = testo.lower()
-    return any(ancora in testo_lower for ancora in ancore)
+    return _trova_ancora(testo, ancore) is not None
 
 
 def _inizio_estratto(testo: str, posizione: int, max_indietro: int = 120) -> int:
@@ -56,7 +68,7 @@ def _inizio_estratto(testo: str, posizione: int, max_indietro: int = 120) -> int
         return 0
 
     inizio = posizione - max_indietro
-    for separatore in ("  ", "\n", ". "):
+    for separatore in (". ", "\n"):
         confine = testo.rfind(separatore, inizio, posizione)
         if confine != -1:
             return confine + len(separatore)
@@ -83,17 +95,8 @@ def _estratto_ancorato(
     corte sono parole. Partiamo dall'ancora e allarghiamo indietro fino a un
     confine leggibile, poi chiudiamo alla frase successiva.
     """
-    testo_lower = testo.lower()
-    posizione = -1
-    ancora_trovata = ""
-    for ancora in sorted(ancore, key=len, reverse=True):
-        indice = testo_lower.find(ancora)
-        if indice != -1:
-            posizione = indice
-            ancora_trovata = ancora
-            break
-
-    if posizione == -1:
+    trovata = _trova_ancora(testo, ancore)
+    if trovata is None:
         return finestra_frasi(
             testo,
             parole_chiave=ancore,
@@ -101,6 +104,7 @@ def _estratto_ancorato(
             max_caratteri=max_caratteri,
         )
 
+    posizione, _, ancora_trovata = trovata
     inizio = _inizio_estratto(testo, posizione)
     fine = min(len(testo), inizio + max_caratteri)
     if fine < len(testo):
@@ -111,7 +115,8 @@ def _estratto_ancorato(
                 break
 
     estratto = testo[inizio:fine].strip()
-    if ancora_trovata and ancora_trovata.lower() not in estratto.lower():
+    estratto_normalizzato = re.sub(r"\s+", " ", estratto.lower())
+    if ancora_trovata.lower() not in estratto_normalizzato:
         return finestra_frasi(
             testo,
             parole_chiave=ancore,
@@ -127,11 +132,13 @@ def risolvi_scenario(scenario_id: str, farmaco_id: str) -> dict[str, Any]:
     scenario = _trova_scenario(scenario_id)
 
     risultati = cerca(scenario["query"], farmaco_id, limite=5)
+    ancore_negative = scenario.get("ancore_negative", [])
     blocco = next(
         (
             risultato
             for risultato in risultati
             if _contiene_ancora(risultato["testo"], scenario["ancore"])
+            and not _contiene_ancora(risultato["testo"], ancore_negative)
         ),
         None,
     )

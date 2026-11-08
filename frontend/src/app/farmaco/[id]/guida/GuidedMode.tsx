@@ -40,7 +40,7 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
 
   useEffect(() => {
     titoloRef.current?.focus()
-  }, [indice])
+  }, [indice, guida])
 
   if (loading) {
     return (

@@ -1,6 +1,8 @@
 """Test degli scenari "Cosa faccio se...?"."""
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from services.scenari import elenco_scenari, risolvi_scenario
@@ -63,6 +65,52 @@ def test_alcol_plasil_non_cita_un_farmaco_qualsiasi():
 def test_scenario_inesistente():
     with pytest.raises(KeyError):
         risolvi_scenario("scenario_inesistente", "plasil")
+
+
+@pytest.mark.parametrize(
+    "farmaco_id",
+    ["tachipirina_1000", "aspirina_500", "augmentin", "moment", "plasil"],
+)
+def test_dose_doppia_non_usa_il_blocco_della_dimenticanza(farmaco_id):
+    risultato = risolvi_scenario("dose_doppia", farmaco_id)
+    assert risultato["trovato"] is True
+    testo = risultato["risposta"].lower()
+    assert "dimenticanza" not in testo
+    assert "compensare" not in testo
+    assert any(
+        ancora in testo
+        for ancora in ("se prende più", "di quanto deve", "overdose")
+    )
+
+
+@pytest.mark.parametrize(
+    "farmaco_id",
+    ["tachipirina_1000", "aspirina_500", "augmentin", "moment", "plasil"],
+)
+def test_reazione_avversa_non_cita_l_introduzione(farmaco_id):
+    risultato = risolvi_scenario("reazione_avversa", farmaco_id)
+    assert risultato["trovato"] is True
+    assert risultato["fonti"][0]["blocco_id"] != f"{farmaco_id}_sec0"
+    testo = risultato["risposta"].lower()
+    assert any(
+        parola in testo
+        for parola in (
+            "reazione",
+            "allerg",
+            "difficoltà",
+            "pronto soccorso",
+            "interrompa",
+            "contatti",
+            "immediatamente",
+        )
+    ), farmaco_id
+
+
+def test_reazione_tachipirina_cita_l_istruzione_di_interrompere():
+    risultato = risolvi_scenario("reazione_avversa", "tachipirina_1000")
+    testo = re.sub(r"\s+", " ", risultato["risposta"].lower())
+    assert "interrompa il trattamento" in testo
+    assert "contatti immediatamente" in testo
 
 
 def test_farmaco_inesistente():

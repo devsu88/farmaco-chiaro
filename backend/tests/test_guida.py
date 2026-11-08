@@ -61,6 +61,35 @@ def test_quando_medico_parla_di_sintomi_o_medico():
     )
 
 
+@pytest.mark.parametrize(
+    "farmaco_id",
+    ["tachipirina_1000", "aspirina_500", "augmentin", "moment", "plasil"],
+)
+def test_quando_medico_contiene_un_indicazione_operativa(farmaco_id):
+    risultato = guida(farmaco_id)
+    schermata = next(
+        s for s in risultato["schermate"] if s["id"] == "quando_medico"
+    )
+    testo = " ".join(schermata["testi"]).lower()
+    assert any(
+        parola in testo
+        for parola in (
+            "medico",
+            "farmacista",
+            "immediatamente",
+            "pronto soccorso",
+            "112",
+            "interrompa",
+            "contatti",
+        )
+    ), farmaco_id
+
+
+def test_riepilogo_contiene_la_dose_principale():
+    risultato = guida("plasil")
+    assert "10 mg" in risultato["riepilogo"][1].lower()
+
+
 def test_le_schermate_restano_brevi():
     for farmaco_id in ("tachipirina_1000", "aspirina_500", "augmentin", "moment", "plasil"):
         risultato = guida(farmaco_id)
