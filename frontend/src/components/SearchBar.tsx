@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { api, type SearchResult } from "@/lib/api"
 
 interface SearchBarProps {
@@ -13,24 +13,40 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
   const [risultati, setRisultati] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  // Ignora le risposte delle ricerche superate: senza questo, una risposta
+  // lenta può riaprire il menu dopo che l'utente ha svuotato il campo.
+  const runIdRef = useRef(0)
+
+  const chiudi = useCallback(() => {
+    runIdRef.current += 1
+    setRisultati([])
+    setIsOpen(false)
+    setLoading(false)
+  }, [])
 
   const cerca = useCallback(async (q: string) => {
+    const runId = ++runIdRef.current
     if (!q.trim()) {
       setRisultati([])
       setIsOpen(false)
+      setLoading(false)
       return
     }
     setLoading(true)
     try {
       const res = await api.search(q)
+      if (runId !== runIdRef.current) return
       setRisultati(res.risultati)
       setIsOpen(res.risultati.length > 0)
     } catch (err) {
+      if (runId !== runIdRef.current) return
       console.error("Errore ricerca:", err)
       setRisultati([])
       setIsOpen(false)
     } finally {
-      setLoading(false)
+      if (runId === runIdRef.current) setLoading(false)
     }
   }, [])
 
@@ -39,17 +55,58 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
     return () => clearTimeout(timer)
   }, [query, cerca])
 
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false)
+        inputRef.current?.blur()
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown)
+    document.addEventListener("keydown", onKeyDown)
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown)
+      document.removeEventListener("keydown", onKeyDown)
+    }
+  }, [])
+
+  const cambiaQuery = (valore: string) => {
+    setQuery(valore)
+    if (!valore.trim()) chiudi()
+  }
+
+  const reset = () => {
+    chiudi()
+    setQuery("")
+    setLoading(false)
+    inputRef.current?.focus()
+  }
+
+  const listaAperta = isOpen && risultati.length > 0
+
   return (
-    <div className="relative w-full max-w-2xl">
+    <div ref={containerRef} className="relative w-full max-w-2xl">
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => cambiaQuery(e.target.value)}
           placeholder={placeholder}
+          role="combobox"
           aria-label="Cerca un farmaco"
+          aria-autocomplete="list"
           aria-controls="risultati-ricerca"
-          className="w-full px-4 py-3 pl-11 pr-4 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+          aria-expanded={listaAperta}
+          className={`w-full py-3 pl-11 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white ${
+            query ? "pr-20" : "pr-4"
+          }`}
           onFocus={() => setIsOpen(risultati.length > 0)}
         />
         <svg
@@ -57,6 +114,7 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -65,23 +123,46 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
         </svg>
-        {loading && (
-          <svg
-            className="w-5 h-5 text-blue-500 animate-spin absolute right-3 top-1/2 -translate-y-1/2"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        )}
+
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {loading && (
+            <svg
+              className="w-5 h-5 text-blue-500 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+          )}
+          {query && (
+            <button
+              type="button"
+              onClick={reset}
+              aria-label="Cancella la ricerca"
+              title="Cancella la ricerca"
+              className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
-      {isOpen && risultati.length > 0 && (
+      {listaAperta && (
         <div
           id="risultati-ricerca"
           role="listbox"
@@ -95,8 +176,7 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
               onClick={() => {
                 onSelect(r.id)
                 setQuery("")
-                setRisultati([])
-                setIsOpen(false)
+                chiudi()
               }}
               className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
             >
