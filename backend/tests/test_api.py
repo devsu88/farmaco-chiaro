@@ -48,6 +48,18 @@ def test_rag_status():
     assert "qdrant" in corpo
 
 
+def test_rag_keepalive_segnala_il_conteggio(monkeypatch):
+    monkeypatch.setattr("app.routes.rag.vector_store.count", lambda: 12947)
+    corpo = client.get("/api/rag/keepalive").json()
+    assert corpo == {"ok": True, "qdrant_count": 12947}
+
+
+def test_rag_keepalive_con_qdrant_vuoto(monkeypatch):
+    monkeypatch.setattr("app.routes.rag.vector_store.count", lambda: 0)
+    corpo = client.get("/api/rag/keepalive").json()
+    assert corpo["ok"] is False
+
+
 def test_chat_senza_api_key_restituisce_sessione_uuid(monkeypatch):
     monkeypatch.setattr("app.routes.chat.has_valid_api_key", lambda: False)
     risposta = client.post(

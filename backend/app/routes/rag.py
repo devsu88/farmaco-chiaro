@@ -46,7 +46,8 @@ def rag_status() -> dict:
 @router.get("/rag/keepalive")
 def rag_keepalive() -> dict:
     """Tocca il cluster Qdrant per evitare la sospensione del free tier."""
-    return {"ok": True, "qdrant_count": vector_store.count()}
+    count = vector_store.count()
+    return {"ok": count > 0, "qdrant_count": count}
 
 
 @router.post("/rag/keepalive")
