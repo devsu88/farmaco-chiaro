@@ -9,6 +9,12 @@ backend/.venv
 backend/.pytest_cache
 backend/.ruff_cache
 backend/data/cache
+backend/data/rag/markdown
+backend/data/rag/embeddings
+backend/data/rag/text
+backend/data/rag/pdf
+backend/tests
+backend/eval
 backend/.env
 backend/.env.*
 frontend/.next
