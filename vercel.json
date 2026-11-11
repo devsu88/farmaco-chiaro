@@ -19,6 +19,24 @@
       "runtime": "container"
     }
   },
+  "redirects": [
+    { "source": "/farmaco/tachipirina_1000", "destination": "/farmaco/012745_01", "permanent": true },
+    { "source": "/farmaco/tachipirina_1000/:path*", "destination": "/farmaco/012745_01/:path*", "permanent": true },
+    { "source": "/farmaco/aspirina_500", "destination": "/farmaco/004763_01", "permanent": true },
+    { "source": "/farmaco/aspirina_500/:path*", "destination": "/farmaco/004763_01/:path*", "permanent": true },
+    { "source": "/farmaco/augmentin", "destination": "/farmaco/026089_01", "permanent": true },
+    { "source": "/farmaco/augmentin/:path*", "destination": "/farmaco/026089_01/:path*", "permanent": true },
+    { "source": "/farmaco/moment", "destination": "/farmaco/025669_01", "permanent": true },
+    { "source": "/farmaco/moment/:path*", "destination": "/farmaco/025669_01/:path*", "permanent": true },
+    { "source": "/farmaco/plasil", "destination": "/farmaco/020766_02", "permanent": true },
+    { "source": "/farmaco/plasil/:path*", "destination": "/farmaco/020766_02/:path*", "permanent": true }
+  ],
+  "crons": [
+    {
+      "path": "/api/rag/keepalive",
+      "schedule": "0 6 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

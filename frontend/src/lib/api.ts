@@ -1,12 +1,9 @@
 // Client API same-origin: il browser chiama sempre le route proxy di Next.
 
-export interface FarmacoPreview {
+export interface FarmacoDetail {
   id: string
   nome: string
   principio_attivo: string
-}
-
-export interface FarmacoDetail extends FarmacoPreview {
   sezioni: Record<string, string>
 }
 
@@ -147,8 +144,6 @@ async function fetchJSON<T>(input: RequestInfo | URL, init?: RequestInit): Promi
 }
 
 export const api = {
-  listFarmaci: (): Promise<FarmacoPreview[]> => fetchJSON("/api/farmaci"),
-
   getFarmaco: (id: string): Promise<FarmacoDetail> =>
     fetchJSON(`/api/farmaco/${encodeURIComponent(id)}`),
 

@@ -14,9 +14,11 @@ wheels/
 .env.*
 !.env.example
 
-# Indice vettoriale generato
-index/chroma/
-index/vector_meta.json
+# Cache di costruzione dell'indice (non serve a runtime)
+data/rag/markdown/
+data/rag/embeddings/
+data/rag/text/
+data/rag/pdf/
 
 # Test / tool caches
 .pytest_cache/

@@ -10,20 +10,24 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
-INDEX_DIR = BASE_DIR / "index"
+RAG_DIR = DATA_DIR / "rag"
 
-CATALOGO_FILE = DATA_DIR / "catalogo_farmaci.json"
-FARMACI_FILE = DATA_DIR / "farmaci.json"
 SCENARI_FILE = DATA_DIR / "scenari.json"
-BLOCCHI_FILE = INDEX_DIR / "blocchi.json"
-INDEX_META_FILE = INDEX_DIR / "index_meta.json"
+CHUNKS_FILE = RAG_DIR / "chunks.jsonl"
+SECTIONS_FILE = RAG_DIR / "sections.jsonl"
+DOCUMENTO_FILE = RAG_DIR / "documento.jsonl"
+FARMACI_FILE = RAG_DIR / "farmaci.json"
+INDEX_META_FILE = RAG_DIR / "index_meta.json"
 
-# ChromaDB apre il database in scrittura: su Vercel il filesystem del codice è
-# in sola lettura, quindi l'indice viene copiato in /tmp al primo utilizzo.
-_default_chroma_dir = "/tmp/chroma" if os.getenv("VERCEL") else str(INDEX_DIR / "chroma")
-CHROMA_DIR = Path(os.getenv("CHROMA_DIR", _default_chroma_dir))
+# Qdrant è un servizio esterno: su Vercel i container non hanno disco
+# persistente. Se non è raggiungibile, il retrieval degrada a BM25.
+QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333").strip()
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip()
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "farmaci_v1")
+QDRANT_TIMEOUT = float(os.getenv("QDRANT_TIMEOUT", "4"))
 
-MARKDOWN_DIR = DATA_DIR / "markdown"
+# hybrid = BM25 + Qdrant con RRF; bm25 = solo lessicale (CI e fallback).
+RETRIEVAL_MODE = os.getenv("RETRIEVAL_MODE", "hybrid").strip().lower()
 
 
 def _csv_env(name: str, default: str) -> list[str]:

@@ -1,14 +1,11 @@
 """Semplificazione ETR: prompt, chunking, merge e cache."""
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.config import CATALOGO_FILE
-from app.farmaci import require
 from app.json_utils import parse_json_object
 from services import cache
 from services.documento import documento as documento_farmaco
@@ -43,7 +40,6 @@ Output JSON richiesto (solo JSON, nessun testo prima o dopo):
 Non inventare informazioni. Se una sezione non c'è, indicalo.
 """
 
-SEZIONI_UTILI = ["indicazioni", "posologia", "controindicazioni", "avvertenze"]
 OCR_ARTIFACTS = {"Ita", "Ag", "rm", "Fa", "del", "enz", "lia", "na", "aco", "ia"}
 LEGAL_FOOTER_RE = re.compile(
     r"medicinali e, pertanto, l[’']Agenzia non può essere ritenuta responsabile.*?\(o titolare AIC\)\.",
@@ -300,9 +296,7 @@ def semplifica(
 def testo_da_documento(farmaco_id: str, sezione: str) -> str | None:
     """Estrae il testo dai blocchi del documento originale.
 
-    È la fonte preferita perché coincide con il pannello a sinistra e con le
-    citazioni della chat. Se i blocchi non bastano, il chiamante può usare il
-    catalogo come fallback.
+    È la stessa fonte del pannello a sinistra e delle citazioni della chat.
     """
     try:
         documento = documento_farmaco(farmaco_id)
@@ -341,32 +335,6 @@ def testo_da_documento(farmaco_id: str, sezione: str) -> str | None:
             parti.append(f"### {nome}\n" + "\n\n".join(testi)[:limite])
 
     return "\n\n".join(parti)[:ETR_MAX_CARATTERI_FONTE] or None
-
-
-def testo_da_catalogo(farmaco_id: str, sezione: str) -> str:
-    """Estrae il testo dal catalogo preview per la semplificazione."""
-    require(farmaco_id)
-    if not CATALOGO_FILE.exists():
-        raise FileNotFoundError("Catalogo farmaci non trovato")
-
-    catalogo = json.loads(CATALOGO_FILE.read_text(encoding="utf-8"))
-    farmaco = next((f for f in catalogo if f["id"] == farmaco_id), None)
-    if farmaco is None:
-        raise KeyError(f"Farmaco non trovato: {farmaco_id}")
-
-    if sezione == "tutta":
-        parti = []
-        for nome in SEZIONI_UTILI:
-            testo = farmaco["sezioni"].get(nome, "")
-            if testo:
-                limite = LIMITI_SEZIONI.get(nome, 3000)
-                parti.append(f"### {nome}\n{testo[:limite]}")
-        return "\n\n".join(parti)[:ETR_MAX_CARATTERI_FONTE]
-
-    testo = farmaco["sezioni"].get(sezione, "")
-    if not testo:
-        raise KeyError(f"Sezione non trovata: {sezione}")
-    return testo[:ETR_MAX_CARATTERI_FONTE]
 
 
 def fallback(motivo: str) -> dict[str, Any]:

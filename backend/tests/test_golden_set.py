@@ -16,8 +16,8 @@ from services.retrieval import cerca
 GOLDEN_FILE = Path(__file__).parent / "data" / "golden_set.json"
 GOLDEN = json.loads(GOLDEN_FILE.read_text(encoding="utf-8"))["domande"]
 
-RECALL_MINIMO = 0.9
-MRR_MINIMO = 0.6
+RECALL_MINIMO = 0.95
+MRR_MINIMO = 0.70
 
 
 def _rank(domanda: dict) -> int:

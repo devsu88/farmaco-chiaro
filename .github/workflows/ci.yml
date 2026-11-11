@@ -17,8 +17,8 @@ jobs:
         run: uv sync --frozen
       - name: Test
         run: uv run pytest -q
-      - name: Verifica indice
-        run: uv run python index/build_index.py --check
+      - name: Lint
+        run: uv run ruff check .
 
   frontend:
     runs-on: ubuntu-latest

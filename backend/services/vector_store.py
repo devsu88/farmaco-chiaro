@@ -1,104 +1,77 @@
-"""Adapter ChromaDB per il retrieval denso.
+"""Adapter Qdrant per il retrieval denso.
 
-L'indice è prodotto dallo script ``scripts/ingest_vector_index.py``. Se
-l'indice non esiste o l'embedding fallisce, il chiamante deve degradare a
+L'indice vive su Qdrant Cloud (o su un server locale in Docker). Se il
+servizio non è raggiungibile o l'embedding fallisce, il chiamante degrada a
 BM25: il chatbot non deve smettere di funzionare.
 """
 from __future__ import annotations
 
 import logging
-import os
-import shutil
 import threading
 from typing import Any
 
-import chromadb
-from chromadb.config import Settings
+from qdrant_client import QdrantClient, models
 
-from app.config import CHROMA_DIR, INDEX_DIR
+from app.config import QDRANT_API_KEY, QDRANT_COLLECTION, QDRANT_TIMEOUT, QDRANT_URL
 from services.embeddings import EmbeddingError, embed_query
 
 logger = logging.getLogger(__name__)
 
-BUNDLED_CHROMA_DIR = INDEX_DIR / "chroma"
-COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "farmaci_blocchi")
-
 _lock = threading.Lock()
-_client = None
-_collection = None
+_client: QdrantClient | None = None
 
 
-def _ensure_chroma_dir() -> bool:
-    """Rende disponibile una directory Chroma scrivibile.
-
-    Su Vercel ``CHROMA_DIR`` punta a ``/tmp/chroma``: se manca, copiamo l'indice
-    incluso nel deploy. In locale la directory è già quella del repository.
-    """
-    marker = CHROMA_DIR / "chroma.sqlite3"
-    if marker.exists():
-        return True
-    bundled_marker = BUNDLED_CHROMA_DIR / "chroma.sqlite3"
-    if CHROMA_DIR == BUNDLED_CHROMA_DIR or not bundled_marker.exists():
-        return False
-    try:
-        shutil.copytree(BUNDLED_CHROMA_DIR, CHROMA_DIR, dirs_exist_ok=True)
-        logger.info("Indice Chroma copiato in %s", CHROMA_DIR)
-        return True
-    except OSError:
-        logger.warning("Impossibile copiare l'indice Chroma in %s", CHROMA_DIR, exc_info=True)
-        return False
-
-
-def _get_collection():
-    global _client, _collection
-    if _collection is not None:
-        return _collection
+def _get_client() -> QdrantClient | None:
+    global _client
+    if _client is not None:
+        return _client
     with _lock:
-        if _collection is not None:
-            return _collection
-        if not _ensure_chroma_dir():
-            return None
+        if _client is not None:
+            return _client
         try:
-            _client = chromadb.PersistentClient(
-                path=str(CHROMA_DIR),
-                settings=Settings(anonymized_telemetry=False),
+            _client = QdrantClient(
+                url=QDRANT_URL,
+                api_key=QDRANT_API_KEY or None,
+                timeout=QDRANT_TIMEOUT,
             )
-            _collection = _client.get_collection(COLLECTION_NAME)
         except Exception:
-            logger.warning("Collezione Chroma non disponibile", exc_info=True)
-            _collection = None
-        return _collection
+            logger.warning("Client Qdrant non inizializzabile", exc_info=True)
+            return None
+        return _client
 
 
 def is_available() -> bool:
-    collection = _get_collection()
-    if collection is None:
+    client = _get_client()
+    if client is None:
         return False
     try:
-        return collection.count() > 0
+        return client.collection_exists(QDRANT_COLLECTION)
     except Exception:
-        logger.warning("Impossibile leggere il conteggio Chroma", exc_info=True)
+        logger.warning("Qdrant non raggiungibile", exc_info=True)
         return False
 
 
 def count() -> int:
-    collection = _get_collection()
-    if collection is None:
+    client = _get_client()
+    if client is None:
         return 0
     try:
-        return collection.count()
+        return int(
+            client.count(collection_name=QDRANT_COLLECTION, exact=True).count
+        )
     except Exception:
+        logger.warning("Impossibile leggere il conteggio Qdrant", exc_info=True)
         return 0
 
 
 def query_dense(
     query: str,
     farmaco_id: str | None = None,
-    n_results: int = 20,
+    n_results: int = 30,
 ) -> list[dict[str, Any]]:
-    """Restituisce i blocchi più simili, deduplicati per blocco padre."""
-    collection = _get_collection()
-    if collection is None:
+    """Restituisce i chunk più simili, con i campi del payload."""
+    client = _get_client()
+    if client is None:
         return []
 
     try:
@@ -107,55 +80,44 @@ def query_dense(
         logger.warning("Embedding query fallito, fallback a BM25", exc_info=True)
         return []
 
-    where = {"farmaco_id": farmaco_id} if farmaco_id else None
+    query_filter = None
+    if farmaco_id:
+        query_filter = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="farmaco_id", match=models.MatchValue(value=farmaco_id)
+                )
+            ]
+        )
+
     try:
-        with _lock:
-            risultato = collection.query(
-                query_embeddings=[vettore],
-                n_results=n_results,
-                where=where,
-                include=["metadatas", "distances", "documents"],
-            )
+        points = client.query_points(
+            collection_name=QDRANT_COLLECTION,
+            query=vettore,
+            limit=n_results,
+            query_filter=query_filter,
+            with_payload=True,
+        ).points
     except Exception:
-        logger.warning("Query Chroma fallita", exc_info=True)
+        logger.warning("Query Qdrant fallita, fallback a BM25", exc_info=True)
         return []
 
-    ids = (risultato.get("ids") or [[]])[0]
-    metadati = (risultato.get("metadatas") or [[]])[0]
-    distanze = (risultato.get("distances") or [[]])[0]
-    documenti = (risultato.get("documents") or [[]])[0]
-
-    migliori: dict[str, dict[str, Any]] = {}
-    for chunk_id, meta, distanza, documento in zip(ids, metadati, distanze, documenti):
-        meta = meta or {}
-        blocco_id = str(meta.get("blocco_id", ""))
-        if not blocco_id:
-            continue
-        similarita = max(0.0, 1.0 - float(distanza))
-        esistente = migliori.get(blocco_id)
-        if esistente and esistente["score_dense"] >= similarita:
-            continue
-        migliori[blocco_id] = {
-            "blocco_id": blocco_id,
-            "farmaco_id": meta.get("farmaco_id", ""),
-            "sezione": meta.get("sezione", ""),
-            "paragrafo": meta.get("paragrafo", ""),
-            "documento": meta.get("documento", ""),
-            "chunk_id": chunk_id,
-            "chunk": documento or "",
-            "score_dense": similarita,
-        }
-
-    return sorted(
-        migliori.values(),
-        key=lambda item: item["score_dense"],
-        reverse=True,
-    )
+    hits: list[dict[str, Any]] = []
+    for point in points:
+        payload = dict(point.payload or {})
+        payload.setdefault("chunk_id", str(point.id))
+        payload["score_dense"] = float(point.score)
+        hits.append(payload)
+    return hits
 
 
 def reset_client() -> None:
     """Utile nei test o dopo una nuova ingestion."""
-    global _client, _collection
+    global _client
     with _lock:
+        if _client is not None:
+            try:
+                _client.close()
+            except Exception:
+                pass
         _client = None
-        _collection = None

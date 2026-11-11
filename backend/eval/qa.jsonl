@@ -1,0 +1,30 @@
+{"question": "Qual è la dose raccomandata di Tachipirina per un adulto?", "expected_drug_id": "012745", "expected_sezione_key": "posologia", "must_contain": ["compressa"]}
+{"question": "Tachipirina si può prendere in gravidanza?", "expected_drug_id": "012745", "expected_sezione_key": "avvertenze_e_controindicazioni", "must_contain": ["gravidanza"]}
+{"question": "Quali sono gli effetti indesiderati della Tachipirina?", "expected_drug_id": "012745", "expected_sezione_key": "effetti_indesiderati"}
+{"question": "Come si conserva la Tachipirina?", "expected_drug_id": "012745", "expected_sezione_key": "conservazione"}
+{"question": "Quali eccipienti contiene la Tachipirina?", "expected_drug_id": "012745", "expected_sezione_key": "composizione", "must_contain": ["paracetamolo"]}
+{"question": "A cosa serve il Moment?", "expected_drug_id": "025669", "expected_sezione_key": "indicazioni", "must_contain": ["ibuprofene"]}
+{"question": "Posso prendere Moment se sono allergico all'ibuprofene?", "expected_drug_id": "025669", "expected_sezione_key": "avvertenze_e_controindicazioni"}
+{"question": "Qual è la posologia del Moment negli adulti?", "expected_drug_id": "025669", "expected_sezione_key": "posologia"}
+{"question": "Che effetti collaterali ha il Moment?", "expected_drug_id": "025669", "expected_sezione_key": "effetti_indesiderati"}
+{"question": "Come si somministra Augmentin ai bambini?", "expected_drug_id": "026089", "expected_sezione_key": "posologia", "must_contain": ["amoxicillina"]}
+{"question": "Quali sono le controindicazioni dell'Augmentin?", "expected_drug_id": "026089", "expected_sezione_key": "avvertenze_e_controindicazioni"}
+{"question": "A cosa serve il Plasil?", "expected_drug_id": "020766", "expected_sezione_key": "indicazioni", "must_contain": ["metoclopramide"]}
+{"question": "Qual è la dose di Plasil contro la nausea?", "expected_drug_id": "020766", "expected_sezione_key": "posologia"}
+{"question": "Il Plasil può dare effetti indesiderati?", "expected_drug_id": "020766", "expected_sezione_key": "effetti_indesiderati"}
+{"question": "Come e quando si prende l'Actonel?", "expected_drug_id": "034568", "expected_sezione_key": "posologia"}
+{"question": "Quali avvertenze ci sono per l'uso di Actonel?", "expected_drug_id": "034568", "expected_sezione_key": "avvertenze_e_controindicazioni"}
+{"question": "A cosa serve Humira?", "expected_drug_id": "035946", "expected_sezione_key": "indicazioni"}
+{"question": "Come si conserva Humira?", "expected_drug_id": "035946", "expected_sezione_key": "conservazione"}
+{"question": "Qual è la dose di Cialis per la disfunzione erettile?", "expected_drug_id": "035672", "expected_sezione_key": "posologia"}
+{"question": "Cialis ha interazioni con altri medicinali?", "expected_drug_id": "035672", "expected_sezione_key": "avvertenze_e_controindicazioni"}
+{"question": "A cosa serve il Tegretol?", "expected_drug_id": "020602", "expected_sezione_key": "indicazioni"}
+{"question": "Quali sono gli effetti indesiderati del Tegretol?", "expected_drug_id": "020602", "expected_sezione_key": "effetti_indesiderati"}
+{"question": "Come si conserva l'Efferalgan?", "expected_drug_id": "026608", "expected_sezione_key": "conservazione"}
+{"question": "Qual è la dose di Efferalgan per un bambino?", "expected_drug_id": "026608", "expected_sezione_key": "posologia"}
+{"question": "A cosa serve il Clasteon?", "expected_drug_id": "026372", "expected_sezione_key": "indicazioni"}
+{"question": "Che cosa contiene il Clasteon?", "expected_drug_id": "026372", "expected_sezione_key": "composizione"}
+{"question": "Qual è la posologia del Mobic?", "expected_drug_id": "031985", "expected_sezione_key": "posologia"}
+{"question": "Il Mobic è controindicato in gravidanza?", "expected_drug_id": "031985", "expected_sezione_key": "avvertenze_e_controindicazioni"}
+{"question": "Come si conserva l'Augmentin?", "expected_drug_id": "026089", "expected_sezione_key": "conservazione"}
+{"question": "A cosa serve l'Ebixa?", "expected_drug_id": "035681", "expected_sezione_key": "indicazioni"}

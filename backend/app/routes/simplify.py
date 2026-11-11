@@ -10,7 +10,6 @@ from services.simplify import (
     fallback,
     pulisci_testo,
     semplifica,
-    testo_da_catalogo,
     testo_da_documento,
 )
 
@@ -34,12 +33,13 @@ def simplify(req: SimplifyRequest) -> dict:
     else:
         try:
             testo = testo_da_documento(req.farmaco_id, req.sezione)
-            if not testo:
-                testo = testo_da_catalogo(req.farmaco_id, req.sezione)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc))
-        except FileNotFoundError:
-            raise HTTPException(status_code=500, detail="Catalogo farmaci non trovato")
+        if not testo:
+            raise HTTPException(
+                status_code=404,
+                detail="Sezione non disponibile per questo foglio illustrativo",
+            )
 
     testo = pulisci_testo(testo)
 

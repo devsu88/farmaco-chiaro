@@ -31,9 +31,10 @@ Prova l'app online: **https://farmaco-chiaro.vercel.app**
 
 ## Come funziona
 
-1. I markdown dei fogli AIFA vengono suddivisi in blocchi citabili
-   (`backend/index/blocchi.json`).
-2. Lo script di ingestion calcola gli embedding dei blocchi e li salva in ChromaDB.
+1. I PDF dei fogli AIFA vengono convertiti in Markdown e suddivisi in chunk e
+   blocchi citabili (`backend/data/rag/`).
+2. La pipeline `aifa_rag` calcola gli embedding dei chunk e li carica su Qdrant
+   (Cloud o server locale), con cache su disco riprendibile.
 3. La ricerca combina BM25 e ricerca vettoriale, fonde i risultati con Reciprocal
    Rank Fusion e seleziona i passaggi più pertinenti.
 4. Un LLM su OpenRouter genera la risposta e la versione semplificata a partire dai
@@ -47,23 +48,23 @@ Prova l'app online: **https://farmaco-chiaro.vercel.app**
 |---|---|---|
 | Frontend | Next.js 16, React 19, Tailwind CSS | Interfaccia utente e proxy same-origin verso il backend |
 | Backend | FastAPI, LangGraph | API REST e orchestrazione della chat |
-| Retrieval | ChromaDB, BM25, RRF | Ricerca semantica e lessicale sui blocchi |
+| Retrieval | Qdrant, BM25, RRF | Ricerca semantica e lessicale sui chunk |
 | LLM e servizi AI | OpenRouter | Chat, semplificazione, embeddings e sintesi vocale |
-| Dati | JSON e markdown AIFA | Catalogo, blocchi e testi di partenza |
+| Dati | JSON AIFA | Registro, chunk e blocchi citabili di 621 fogli illustrativi |
 
 ```text
 .
 ├── backend/
 │   ├── app/            # FastAPI: route, schemi, configurazione
+│   ├── aifa_rag/       # pipeline dataset, embedding e indice Qdrant
 │   ├── graph/          # grafo LangGraph della chat
 │   ├── services/       # retrieval, semplificazione, citazioni, TTS
-│   ├── data/           # catalogo e markdown dei fogli illustrativi
-│   ├── index/          # blocchi citabili e indice ChromaDB
-│   └── scripts/        # ingestion dell'indice vettoriale
+│   ├── eval/           # domande di valutazione del retrieval
+│   └── data/rag/       # chunk, sezioni, blocchi e registro (runtime)
 ├── frontend/           # Next.js App Router
 ├── docs/               # screenshot della demo
-├── docker-compose.yml
-└── vercel.json         # deploy su Vercel Services
+├── docker-compose.yml  # frontend + backend + Qdrant locale
+└── vercel.json         # deploy su Vercel Services, redirect e cron
 ```
 
 ## Requisiti
@@ -94,7 +95,10 @@ backend, quindi il browser resta sullo stesso origin.
 
 ```bash
 cp backend/.env.example backend/.env   # inserire OPENROUTER_API_KEY
-docker compose up --build
+docker compose up -d qdrant
+# Indicizza sul Qdrant locale (una volta sola, o dopo aver rigenerato il dataset)
+cd backend && QDRANT_URL=http://localhost:6333 uv run python -m aifa_rag.cli index
+cd .. && docker compose up --build
 ```
 
 ## Comandi
@@ -102,15 +106,16 @@ docker compose up --build
 | Comando | Descrizione |
 |---|---|
 | `make dev` | Avvia backend e frontend in parallelo |
-| `make index` | Rigenera i blocchi citabili dai markdown |
-| `make ingest` | Rigenera l'indice vettoriale su ChromaDB (richiede API key) |
+| `make dataset` | Rigenera chunk, sezioni, blocchi e registro dai Markdown |
+| `make index` | Calcola gli embedding e carica l'indice su Qdrant |
+| `make eval` | Valuta il retrieval denso su `backend/eval/qa.jsonl` |
 | `make test` | Test backend e lint frontend |
 | `make lint` | Ruff sul backend ed ESLint sul frontend |
 | `make build` | Build di produzione del frontend |
 | `make up` / `make down` | Avvia o ferma Docker Compose |
 
-Dopo aver modificato i markdown servono `make index` e `make ingest`, poi il
-riavvio del backend.
+Dopo aver rigenerato il dataset servono `make index` e il riavvio del backend.
+`make index` usa `QDRANT_URL` e `QDRANT_API_KEY` da `backend/.env`.
 
 ## Test
 
@@ -128,9 +133,17 @@ Il deploy di produzione usa **Vercel Services** con due servizi:
 - `backend`: container FastAPI, raggiungibile dal frontend tramite il binding
   privato `BACKEND_URL`.
 
-La configurazione è in `vercel.json`. Sul filesystem read-only di Vercel, ChromaDB
-copia l'indice incluso nel deploy in `/tmp/chroma` al primo utilizzo.
+La configurazione è in `vercel.json`. Il container backend include gli artefatti
+runtime in `backend/data/rag/`; i vettori vivono su Qdrant Cloud.
 
-Con `vercel deploy` l'indice viene caricato perché presente nel progetto locale. Un
-deploy automatico da Git richiede che `backend/index/chroma` sia committato oppure
-rigenerato in CI, altrimenti il retrieval resta in modalità BM25.
+Impostare su Vercel le variabili `QDRANT_URL` e `QDRANT_API_KEY` per gli ambienti
+Production e Preview. L'indice va caricato una volta da locale:
+
+```bash
+cd backend
+uv run python -m aifa_rag.cli index
+```
+
+Il cron giornaliero `/api/rag/keepalive` evita la sospensione del free tier Qdrant.
+Lo stato è visibile su `/api/rag/status`. Se Qdrant non è raggiungibile, il
+retrieval continua a funzionare in BM25.

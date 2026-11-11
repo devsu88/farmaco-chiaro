@@ -1,0 +1,8 @@
+{
+  "model": "nvidia/nemotron-3-embed-1b:free",
+  "dim": 2048,
+  "count": 12947,
+  "chunks_sha256": "81fa5f1bf21a526c97202896a1a83355a2736cbd373024a35a73c15a6b3615ef",
+  "collection": "farmaci_v1",
+  "farmaci": 621
+}

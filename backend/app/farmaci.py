@@ -1,17 +1,16 @@
-"""Registro unico dei farmaci.
+"""Registro unico dei fogli illustrativi indicizzati.
 
-Questo modulo è l'unica fonte di verità per il mapping
-``farmaco_id -> file markdown / titolo documento``. Tutti gli altri moduli
-(build index, retrieval, route, fallback) devono passare da qui.
+L'unità è il foglio illustrativo, non il prodotto AIFA: un farmaco può avere
+più formulazioni (es. Tachipirina compresse, supposte, sciroppo). L'id è
+``{drug_id}_{leaflet}``, es. ``012745_01``.
 """
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 
-from app.config import FARMACI_FILE, MARKDOWN_DIR
+from app.config import CHUNKS_FILE, DOCUMENTO_FILE, FARMACI_FILE, SECTIONS_FILE
 
 
 @dataclass(frozen=True)
@@ -19,17 +18,12 @@ class Farmaco:
     id: str
     nome: str
     principio_attivo: str
-    file_fi: str
-    file_rcp: str
+    principi_attivi: tuple[str, ...]
     documento: str
-
-    @property
-    def path_fi(self) -> Path:
-        return MARKDOWN_DIR / "FI" / self.file_fi
-
-    @property
-    def path_rcp(self) -> Path:
-        return MARKDOWN_DIR / "RCP" / self.file_rcp
+    drug_id: str
+    leaflet: str
+    atc: str
+    n_chunks: int
 
 
 @lru_cache(maxsize=1)
@@ -43,10 +37,13 @@ def _load() -> dict[str, Farmaco]:
         farmaco = Farmaco(
             id=item["id"],
             nome=item["nome"],
-            principio_attivo=item["principio_attivo"],
-            file_fi=item["file_fi"],
-            file_rcp=item["file_rcp"],
-            documento=item["documento"],
+            principio_attivo=item.get("principio_attivo", ""),
+            principi_attivi=tuple(item.get("principi_attivi") or []),
+            documento=item.get("documento", ""),
+            drug_id=item.get("drug_id", ""),
+            leaflet=item.get("leaflet", ""),
+            atc=item.get("atc", ""),
+            n_chunks=int(item.get("n_chunks", 0)),
         )
         if farmaco.id in registro:
             raise ValueError(f"Farmaco duplicato nel registro: {farmaco.id}")
@@ -70,28 +67,13 @@ def require(farmaco_id: str) -> Farmaco:
 
 
 def valida_file() -> list[str]:
-    """Restituisce la lista dei file mancanti, senza sollevare eccezioni."""
+    """Restituisce gli artefatti mancanti o vuoti, senza sollevare eccezioni."""
     mancanti: list[str] = []
-    for farmaco in all():
-        if not farmaco.path_fi.exists():
-            mancanti.append(str(farmaco.path_fi))
-        if not farmaco.path_rcp.exists():
-            mancanti.append(str(farmaco.path_rcp))
+    for path in (CHUNKS_FILE, SECTIONS_FILE, DOCUMENTO_FILE, FARMACI_FILE):
+        if not path.exists() or path.stat().st_size == 0:
+            mancanti.append(str(path))
     return mancanti
 
 
-def tieni_primo_foglio(text: str) -> str:
-    """Tiene solo il primo foglio illustrativo di un markdown AIFA.
-
-    I file AIFA contengono più fogli concatenati (una formulazione per volta).
-    Indicizzarli tutti faceva pescare al retrieval la formulazione sbagliata.
-    """
-    lines = text.split("\n")
-    inizio_fogli = [
-        i
-        for i, line in enumerate(lines)
-        if line.strip().lower().startswith("foglio illustrativo")
-    ]
-    if len(inizio_fogli) > 1:
-        return "\n".join(lines[: inizio_fogli[1]])
-    return text
+def reset_cache() -> None:
+    _load.cache_clear()

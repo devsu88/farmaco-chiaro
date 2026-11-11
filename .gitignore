@@ -6,8 +6,11 @@ backend/.env.*
 # Python
 backend/.venv/
 backend/data/cache/
-backend/index/chroma/
-backend/index/vector_meta.json
+backend/data/eval_report.json
+backend/data/rag/markdown/
+backend/data/rag/embeddings/
+backend/data/rag/text/
+backend/data/rag/pdf/
 **/__pycache__/
 *.py[oc]
 .pytest_cache/
@@ -33,3 +36,6 @@ REPORT.md
 .vscode/
 .vercel
 .env*
+
+# Report generato dalla pipeline
+backend/data/report.md

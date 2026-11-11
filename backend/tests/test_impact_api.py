@@ -1,4 +1,4 @@
-"""Test HTTP dei nuovi endpoint: guida, scenari e scheda."""
+"""Test HTTP degli endpoint: guida, scenari e scheda."""
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
@@ -9,7 +9,7 @@ client = TestClient(app)
 
 
 def test_guida_endpoint():
-    risposta = client.get("/api/farmaci/plasil/guida")
+    risposta = client.get("/api/farmaci/020766_02/guida")
     assert risposta.status_code == 200
     body = risposta.json()
     assert len(body["schermate"]) == 4
@@ -29,7 +29,7 @@ def test_elenco_scenari_endpoint():
 def test_scenario_endpoint():
     risposta = client.post(
         "/api/scenari/alcol",
-        json={"farmaco_id": "tachipirina_1000"},
+        json={"farmaco_id": "012745_01"},
     )
     assert risposta.status_code == 200
     body = risposta.json()
@@ -40,14 +40,14 @@ def test_scenario_endpoint():
 def test_scenario_inesistente_404():
     risposta = client.post(
         "/api/scenari/nope",
-        json={"farmaco_id": "tachipirina_1000"},
+        json={"farmaco_id": "012745_01"},
     )
     assert risposta.status_code == 404
 
 
 def test_scheda_endpoint():
-    risposta = client.get("/api/farmaci/moment/scheda")
+    risposta = client.get("/api/farmaci/025669_01/scheda")
     assert risposta.status_code == 200
     body = risposta.json()
-    assert body["nome"] == "Moment"
+    assert body["nome"] == "MOMENT 200 mg compresse masticabili"
     assert body["fonti"]

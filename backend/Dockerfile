@@ -9,11 +9,11 @@ ENV UV_COMPILE_BYTECODE=1 \
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+COPY aifa_rag ./aifa_rag
 COPY app ./app
 COPY services ./services
 COPY graph ./graph
 COPY tools ./tools
-COPY index ./index
 COPY data ./data
 
 ENV PATH="/app/.venv/bin:$PATH"

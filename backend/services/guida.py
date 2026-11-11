@@ -131,7 +131,7 @@ def _candidati(
     candidati = [
         (punteggio, blocco)
         for blocco in blocchi
-        if blocco["id"] not in escludi
+        if blocco["blocco_id"] not in escludi
         and (punteggio := _punteggio_blocco(blocco, schermata)) > 0
     ]
     candidati.sort(key=lambda item: (item[0], len(item[1]["testo"])), reverse=True)
@@ -172,7 +172,7 @@ def _costruisci_schermata(
         max_caratteri=MAX_CARATTERI_SCHERMATA,
     )
     fonte = {
-        "blocco_id": blocco["id"],
+        "blocco_id": blocco["blocco_id"],
         "documento": blocco["documento"],
         "sezione": blocco["sezione"],
         "paragrafo": blocco["paragrafo"],

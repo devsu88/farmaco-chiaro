@@ -4,13 +4,10 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
-class FarmacoPreview(BaseModel):
+class FarmacoDetail(BaseModel):
     id: str
     nome: str
     principio_attivo: str
-
-
-class FarmacoDetail(FarmacoPreview):
     sezioni: dict[str, str]
 
 

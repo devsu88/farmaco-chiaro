@@ -7,4 +7,9 @@ __pycache__
 .mypy_cache
 .ruff_cache
 tests
+eval
 data/cache
+data/rag/markdown
+data/rag/embeddings
+data/rag/text
+data/rag/pdf

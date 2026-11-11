@@ -75,8 +75,8 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
       let documentoCaricato: DocumentoResponse | null =
         documentoRes.status === "fulfilled" ? documentoRes.value : null
 
-      // Se il documento citabile non è disponibile, mostriamo il catalogo
-      // come fallback: l'utente vede comunque il testo originale.
+      // Se il documento citabile non è disponibile, mostriamo le sezioni del
+      // dettaglio come fallback: l'utente vede comunque il testo originale.
       if (!documentoCaricato) {
         documentoCaricato = {
           farmaco_id: farmacoCaricato.id,
@@ -86,7 +86,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
               titolo,
               blocchi: [
                 {
-                  blocco_id: `catalogo-${titolo}`,
+                  blocco_id: `sezione-${titolo}`,
                   paragrafo: "1",
                   testo,
                 },

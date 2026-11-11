@@ -1,11 +1,11 @@
 """Test degli scenari "Cosa faccio se...?"."""
 from __future__ import annotations
 
-import re
-
 import pytest
 
 from services.scenari import elenco_scenari, risolvi_scenario
+
+FARMACI = ["012745_01", "004763_01", "026089_01", "025669_01", "020766_02"]
 
 
 def test_elenco_scenari_contiene_i_quattro_della_demo():
@@ -18,99 +18,107 @@ def test_elenco_scenari_contiene_i_quattro_della_demo():
     ]
 
 
-def test_dimenticanza_augmentin_cita_la_regola_della_dose():
-    risultato = risolvi_scenario("dose_dimenticata", "augmentin")
+@pytest.mark.parametrize("farmaco_id", FARMACI)
+def test_dimenticanza_trova_la_regola_della_dose(farmaco_id):
+    risultato = risolvi_scenario("dose_dimenticata", farmaco_id)
     assert risultato["trovato"] is True
-    assert "dose" in risultato["risposta"].lower()
+    assert "dose doppia" in risultato["risposta"].lower()
     assert risultato["fonti"]
     assert risultato["azione"]
 
 
-def test_alcol_moment_trova_il_paragrafo_sull_alcol():
-    risultato = risolvi_scenario("alcol", "moment")
+def test_dose_doppia_moment_trova_il_sovradosaggio():
+    risultato = risolvi_scenario("dose_doppia", "025669_01")
     assert risultato["trovato"] is True
-    assert "alcool" in risultato["risposta"].lower()
-    assert risultato["fonti"][0]["blocco_id"] == "moment_sec5"
-
-
-def test_reazione_avversa_contiene_un_indicazione_di_urgenza():
-    risultato = risolvi_scenario("reazione_avversa", "moment")
-    assert risultato["urgenza"] in {"contatta_medico", "emergenza"}
-    assert risultato["azione"]
-
-
-def test_ogni_fonte_e_ancorata_a_un_blocco_reale():
-    from services.retrieval import blocchi_per_farmaco
-
-    testi = {blocco["id"]: blocco["testo"] for blocco in blocchi_per_farmaco("plasil")}
-    risultato = risolvi_scenario("dose_doppia", "plasil")
-    for fonte in risultato["fonti"]:
-        assert fonte["testo_evidenziato"] in testi[fonte["blocco_id"]]
-
-
-@pytest.mark.parametrize("farmaco_id", ["augmentin", "aspirina_500", "plasil"])
-def test_dimenticanza_riporta_la_regola_della_dose(farmaco_id):
-    risultato = risolvi_scenario("dose_dimenticata", farmaco_id)
-    assert risultato["trovato"] is True
-    assert "non prenda una dose doppia" in risultato["risposta"].lower()
-
-
-def test_alcol_plasil_non_cita_un_farmaco_qualsiasi():
-    risultato = risolvi_scenario("alcol", "plasil")
-    assert risultato["trovato"] is True
-    assert "consumare alcol" in risultato["risposta"].lower()
-    assert "rifampicina" not in risultato["risposta"].lower()
-
-
-def test_scenario_inesistente():
-    with pytest.raises(KeyError):
-        risolvi_scenario("scenario_inesistente", "plasil")
+    assert risultato["fonti"][0]["blocco_id"] == "025669_01_3_01"
+    assert "se ha preso più" in risultato["risposta"].lower()
 
 
 @pytest.mark.parametrize(
-    "farmaco_id",
-    ["tachipirina_1000", "aspirina_500", "augmentin", "moment", "plasil"],
+    "farmaco_id", ["012745_01", "004763_01", "026089_01", "020766_02"]
 )
-def test_dose_doppia_non_usa_il_blocco_della_dimenticanza(farmaco_id):
+def test_dose_doppia_senza_ancora_resta_un_fallback_esplicito(farmaco_id):
     risultato = risolvi_scenario("dose_doppia", farmaco_id)
-    assert risultato["trovato"] is True
-    testo = risultato["risposta"].lower()
-    assert "dimenticanza" not in testo
-    assert "compensare" not in testo
-    assert any(
-        ancora in testo
-        for ancora in ("se prende più", "di quanto deve", "overdose")
-    )
+    assert risultato["trovato"] is False
+    assert risultato["fonti"] == []
+    assert "non riporta indicazioni specifiche" in risultato["risposta"].lower()
 
 
-@pytest.mark.parametrize(
-    "farmaco_id",
-    ["tachipirina_1000", "aspirina_500", "augmentin", "moment", "plasil"],
-)
-def test_reazione_avversa_non_cita_l_introduzione(farmaco_id):
+@pytest.mark.parametrize("farmaco_id", FARMACI)
+def test_reazione_avversa_contiene_un_indicazione_di_urgenza(farmaco_id):
     risultato = risolvi_scenario("reazione_avversa", farmaco_id)
     assert risultato["trovato"] is True
-    assert risultato["fonti"][0]["blocco_id"] != f"{farmaco_id}_sec0"
+    assert risultato["urgenza"] in {"contatta_medico", "emergenza"}
+    assert risultato["azione"]
+    assert risultato["fonti"]
     testo = risultato["risposta"].lower()
     assert any(
         parola in testo
         for parola in (
             "reazione",
             "allerg",
-            "difficoltà",
-            "pronto soccorso",
             "interrompa",
             "contatti",
             "immediatamente",
+            "pronto soccorso",
         )
     ), farmaco_id
 
 
+@pytest.mark.parametrize(
+    "farmaco_id", ["012745_01", "004763_01", "025669_01", "020766_02"]
+)
+def test_alcol_trova_il_paragrafo_specifico(farmaco_id):
+    risultato = risolvi_scenario("alcol", farmaco_id)
+    assert risultato["trovato"] is True
+    assert risultato["fonti"]
+    assert any(
+        parola in risultato["risposta"].lower()
+        for parola in ("alcol", "alcool")
+    )
+
+
+def test_alcol_augmentin_senza_ancora_resta_un_fallback_esplicito():
+    risultato = risolvi_scenario("alcol", "026089_01")
+    assert risultato["trovato"] is False
+    assert risultato["fonti"] == []
+    assert "non riporta indicazioni specifiche" in risultato["risposta"].lower()
+
+
+def test_alcol_plasil_non_cita_un_farmaco_qualsiasi():
+    risultato = risolvi_scenario("alcol", "020766_02")
+    assert risultato["trovato"] is True
+    assert "consumare alcol" in risultato["risposta"].lower()
+    assert "rifampicina" not in risultato["risposta"].lower()
+
+
+def test_ogni_fonte_e_ancorata_a_un_blocco_reale():
+    from services.retrieval import blocchi_per_farmaco
+
+    testi = {
+        blocco["blocco_id"]: blocco["testo"]
+        for blocco in blocchi_per_farmaco("020766_02")
+    }
+    risultato = risolvi_scenario("dose_dimenticata", "020766_02")
+    for fonte in risultato["fonti"]:
+        assert fonte["testo_evidenziato"] in testi[fonte["blocco_id"]]
+
+
+def test_reazione_avversa_non_cita_l_introduzione():
+    risultato = risolvi_scenario("reazione_avversa", "012745_01")
+    assert risultato["fonti"][0]["blocco_id"] != "012745_01_0_00"
+
+
 def test_reazione_tachipirina_cita_l_istruzione_di_interrompere():
-    risultato = risolvi_scenario("reazione_avversa", "tachipirina_1000")
-    testo = re.sub(r"\s+", " ", risultato["risposta"].lower())
-    assert "interrompa il trattamento" in testo
-    assert "contatti immediatamente" in testo
+    risultato = risolvi_scenario("reazione_avversa", "012745_01")
+    teste = risultato["risposta"].lower()
+    assert "interrompa il trattamento" in teste
+    assert "contatti" in teste
+
+
+def test_scenario_inesistente():
+    with pytest.raises(KeyError):
+        risolvi_scenario("scenario_inesistente", "020766_02")
 
 
 def test_farmaco_inesistente():

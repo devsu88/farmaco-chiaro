@@ -1,4 +1,4 @@
-"""Documento originale citabile, costruito dagli stessi blocchi dell'indice."""
+"""Documento originale citabile, costruito dai blocchi dell'indice."""
 from __future__ import annotations
 
 from app import farmaci
@@ -25,7 +25,7 @@ def documento(farmaco_id: str) -> dict:
             sezioni.append(sezione)
         sezione["blocchi"].append(
             {
-                "blocco_id": blocco["id"],
+                "blocco_id": blocco["blocco_id"],
                 "paragrafo": blocco["paragrafo"],
                 "testo": blocco["testo"],
             }

@@ -4,7 +4,7 @@ Flusso:
     riscrivi query (con storico) -> domanda meta? -> risposta conversazionale
                                  -> recupera -> genera
                                             -> espandi -> recupera -> genera | fallback
-    genera -> se "non trovato" -> fallback sul markdown completo
+    genera -> se "non trovato" -> fallback sul documento completo
 
 La sessione è stateless: la history arriva dal client e viene usata per
 riscrivere i follow-up e per rispondere alle domande sulla conversazione.
@@ -20,7 +20,6 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
 from app import farmaci
-from app.farmaci import tieni_primo_foglio
 from app.json_utils import parse_json_object
 from app.llm import CHAT_MODEL, build_llm
 from services.citazioni import (
@@ -31,7 +30,7 @@ from services.citazioni import (
     valida_fonte,
 )
 from services.retrieval import espandi_sinonimi
-from tools.markdown_tool import carica_markdown, cerca_nel_markdown, cerca_testo
+from tools.markdown_tool import carica_documento, cerca_testo
 
 logger = logging.getLogger(__name__)
 
@@ -394,14 +393,9 @@ def nodo_fallback(state: ChatState) -> dict:
     farmaco_id = state["farmaco_id"]
     query = state.get("query_riscritta") or state["messaggi"][-1]["testo"]
     try:
-        chunks = cerca_nel_markdown(query, farmaco_id, limite=3)
-        if chunks:
-            return _genera(state, _contesto(chunks, query=query), chunks, True)
-
-        markdown = carica_markdown(farmaco_id, tipo="FI")
-        contenuto = tieni_primo_foglio(markdown["contenuto"])
+        documento = carica_documento(farmaco_id)
         estratto = estrai_estratto(
-            contenuto,
+            documento["contenuto"],
             espandi_sinonimi(query),
             max_caratteri=6000,
         )
@@ -425,13 +419,9 @@ def dopo_riscrittura(state: ChatState) -> str:
 
 
 def dopo_recupero(state: ChatState) -> str:
-    candidati = state.get("candidati_retrieval") or []
-    if not candidati:
-        return "espandi"
-    # Se il match è debole, vale la pena espandere la query con l'LLM.
-    if candidati[0].get("score", 0) < 2.5:
-        return "espandi"
-    return "genera"
+    # Con RRF gli score non sono comparabili a una soglia: espandiamo solo se
+    # non c'è proprio nessun candidato.
+    return "espandi" if not state.get("candidati_retrieval") else "genera"
 
 
 def dopo_recupero_espanso(state: ChatState) -> str:
