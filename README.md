@@ -17,8 +17,8 @@ Prova l'app online: **https://farmaco-chiaro.vercel.app**
 ## Funzionalità
 
 - **Documento originale integrale**, suddiviso in blocchi citabili e sempre consultabile.
-- **Percorso guidato "Una cosa alla volta"**: quattro schermate semplici con audio,
-  fonte e modalità alto contrasto.
+- **Percorso guidato "Una cosa alla volta"**: quattro schermate semplici, recuperate
+  con ricerca semantica e citate dal foglio, con audio e modalità alto contrasto.
 - **"Cosa faccio se…?"**: risposte brevi e citate per dimenticanza, dose doppia,
   reazione avversa e alcol.
 - **Scheda condivisibile con QR e WhatsApp** per familiari e caregiver.
@@ -39,8 +39,9 @@ Prova l'app online: **https://farmaco-chiaro.vercel.app**
    Rank Fusion e seleziona i passaggi più pertinenti.
 4. Un LLM su OpenRouter genera la risposta e la versione semplificata a partire dai
    passaggi recuperati.
-5. Se l'indice vettoriale o gli embedding non sono disponibili, il retrieval
-   prosegue in modalità BM25 e la chat resta operativa.
+5. Guida, chat e scenari usano la ricerca semantica su Qdrant; la home combina
+   parole chiave e semantica. Se Qdrant o gli embedding non sono disponibili,
+   il retrieval prosegue in BM25 e l'app resta operativa.
 
 ## Architettura
 
@@ -48,7 +49,7 @@ Prova l'app online: **https://farmaco-chiaro.vercel.app**
 |---|---|---|
 | Frontend | Next.js 16, React 19, Tailwind CSS | Interfaccia utente e proxy same-origin verso il backend |
 | Backend | FastAPI, LangGraph | API REST e orchestrazione della chat |
-| Retrieval | Qdrant, BM25, RRF | Ricerca semantica e lessicale sui chunk |
+| Retrieval | Qdrant, BM25, RRF | Semantica per guida/chat/scenari, keyword + semantica in home |
 | LLM e servizi AI | OpenRouter | Chat, semplificazione, embeddings e sintesi vocale |
 | Dati | JSON AIFA | Registro, chunk e blocchi citabili di 621 fogli illustrativi |
 

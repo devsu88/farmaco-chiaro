@@ -113,6 +113,111 @@ def affina_span(
     return raffinato or span[:max_caratteri]
 
 
+DOSE_RE = re.compile(
+    r"\b\d+(?:[.,]\d+)?(?:\s*[-–]\s*\d+(?:[.,]\d+)?)?\s*"
+    r"(?:mg|ml|g|mcg|µg|ui|ore|ora|giorno|compresse?|capsule|gocce|supposte|bustine)\b",
+    re.IGNORECASE,
+)
+
+
+def finestra_ancorata(
+    testo: str,
+    ancore: tuple[str, ...] | list[str],
+    max_frasi: int = 3,
+    max_caratteri: int = 550,
+) -> str:
+    """Prima finestra che contiene davvero un'indicazione, non solo il titolo."""
+    frasi = _frasi_con_offset(testo)
+    for indice, (inizio, _, frase) in enumerate(frasi):
+        if not conta_parole_chiave(frase, ancore):
+            continue
+        fine = frasi[indice][1]
+        for _, f_fine, _ in frasi[indice + 1 : indice + max_frasi]:
+            if f_fine - inizio > max_caratteri:
+                break
+            fine = f_fine
+        return testo[inizio:fine].strip()
+    return ""
+
+
+def finestra_dose(
+    testo: str,
+    max_frasi: int = 3,
+    max_caratteri: int = 700,
+) -> str:
+    """Estrae la prima posologia concreta del blocco.
+
+    Contare le parole chiave premia le tabelle pediatriche o le sezioni di
+    sovradosaggio; per "Come si prende" serve invece la prima dose reale, che
+    di solito è quella generale o dell'adulto.
+    """
+    contesto = (
+        "somministr",
+        "assum",
+        "prend",
+        "dose raccomandata",
+        "dose usuale",
+        "dose definita",
+        "dose in funzione",
+        "rispettare la dose",
+        "usi la dose",
+    )
+    escludi = (
+        "sovradosagg",
+        "dose eccessiva",
+        "dimentic",
+        "eccipienti",
+        "contiene",
+        "non superare",
+        "non usi",
+        "non prenda",
+        "non deve",
+        "non somministri",
+        "non assuma",
+    )
+
+    frasi = _frasi_con_offset(testo)
+    for indice, (inizio, _, frase) in enumerate(frasi):
+        basso = frase.lower()
+        frase_dose = any(
+            chiave in basso
+            for chiave in (
+                "dose raccomandata",
+                "dose usuale",
+                "dose definita",
+                "dose in funzione",
+                "rispettare la dose",
+            )
+        )
+        if not (frase_dose or DOSE_RE.search(frase)):
+            continue
+        # "1 ml contiene 9,6 mg" è composizione, non posologia.
+        if not any(chiave in basso for chiave in contesto):
+            continue
+        if any(chiave in basso for chiave in escludi):
+            continue
+        fine = frasi[indice][1]
+        for _, f_fine, _ in frasi[indice + 1 : indice + max_frasi]:
+            if f_fine - inizio > max_caratteri:
+                break
+            fine = f_fine
+        return testo[inizio:fine].strip()
+    return ""
+
+
+def _parola_presente(testo_lower: str, parola: str) -> bool:
+    """Confronto a parola intera: "ore" non deve combaciare con "dolore"."""
+    return re.search(
+        rf"(?<!\w){re.escape(parola.lower())}(?!\w)",
+        testo_lower,
+    ) is not None
+
+
+def conta_parole_chiave(testo: str, parole: tuple[str, ...] | list[str]) -> int:
+    testo_lower = testo.lower()
+    return sum(1 for parola in parole if _parola_presente(testo_lower, parola))
+
+
 def finestra_frasi(
     testo: str,
     parole_chiave: tuple[str, ...] | list[str] = (),
@@ -131,6 +236,19 @@ def finestra_frasi(
         return testo[:max_caratteri].strip()
 
     parole = [parola.lower() for parola in parole_chiave]
+
+    # Senza parole chiave non ha senso fermarsi alla prima frase: spesso è solo
+    # "X contiene Y" e l'indicazione vera arriva subito dopo. Prendiamo la prima
+    # finestra di più frasi che resta nel limite.
+    if not parole:
+        inizio = frasi[0][0]
+        fine = frasi[0][1]
+        for _, f_fine, _ in frasi[1:max_frasi]:
+            if f_fine - inizio > max_caratteri:
+                break
+            fine = f_fine
+        return testo[inizio:fine].strip()
+
     migliore_testo = ""
     migliore_punteggio = -1
     for inizio_indice in range(len(frasi)):
@@ -143,11 +261,7 @@ def finestra_frasi(
             if fine - inizio > max_caratteri:
                 break
             candidato = testo[inizio:fine].strip()
-            punteggio = (
-                sum(1 for parola in parole if parola in candidato.lower())
-                if parole
-                else 0
-            )
+            punteggio = conta_parole_chiave(candidato, parole)
             if punteggio > migliore_punteggio:
                 migliore_punteggio = punteggio
                 migliore_testo = candidato

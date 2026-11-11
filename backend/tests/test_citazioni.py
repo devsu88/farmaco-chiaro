@@ -3,6 +3,8 @@ from services.citazioni import (
     arricchisci_fonti,
     estrai_estratto,
     filtra_fonti,
+    finestra_dose,
+    finestra_frasi,
     fonte_da_blocco,
     valida_fonte,
 )
@@ -14,6 +16,29 @@ BLOCCO = {
     "paragrafo": "1",
     "testo": "La dose raccomandata è 1 compressa fino a 3 volte al giorno.",
 }
+
+
+def test_finestra_dose_ignora_composizione_e_avvertenze():
+    testo = (
+        "1 ml di soluzione contiene 9,6 mg di glicole propilenico. "
+        "Non superare la dose raccomandata. "
+        "Il prodotto deve essere somministrato ogni 4-6 ore secondo necessità."
+    )
+    assert finestra_dose(testo).startswith("Il prodotto deve essere somministrato")
+
+
+def test_finestra_frasi_senza_parole_chiave_non_si_ferma_alla_prima_frase():
+    testo = (
+        "Tachifenekid contiene paracetamolo e ibuprofene. "
+        "Allevia il dolore e riduce l'infiammazione. "
+        "Viene utilizzato per il trattamento del dolore acuto."
+    )
+    assert finestra_frasi(testo).startswith("Tachifenekid contiene")
+
+
+def test_finestra_frasi_non_confonde_ore_con_dolore():
+    testo = "Il dolore è forte. La dose è ogni 4-6 ore."
+    assert "dose" in finestra_frasi(testo, ["ore"]).lower()
 
 
 def test_fonte_da_blocco_e_verificata():

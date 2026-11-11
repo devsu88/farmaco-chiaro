@@ -26,8 +26,10 @@ QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip()
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "farmaci_v1")
 QDRANT_TIMEOUT = float(os.getenv("QDRANT_TIMEOUT", "4"))
 
-# hybrid = BM25 + Qdrant con RRF; bm25 = solo lessicale (CI e fallback).
-RETRIEVAL_MODE = os.getenv("RETRIEVAL_MODE", "hybrid").strip().lower()
+# semantic = Qdrant come fonte primaria (BM25 solo se Qdrant non risponde);
+# bm25 = solo lessicale, usato dai test e come modalità offline.
+# La ricerca della home combina comunque sempre le due fonti.
+RETRIEVAL_MODE = os.getenv("RETRIEVAL_MODE", "semantic").strip().lower()
 
 
 def _csv_env(name: str, default: str) -> list[str]:

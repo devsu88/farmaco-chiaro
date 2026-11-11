@@ -1,4 +1,4 @@
-"""Retrieval ibrido sui fogli illustrativi.
+"""Retrieval sui fogli illustrativi.
 
 Interfaccia pubblica:
 - ``cerca(query, farmaco_id, limite)``
@@ -6,8 +6,9 @@ Interfaccia pubblica:
 - ``blocchi_per_farmaco(farmaco_id)``
 - ``trova_blocco(blocco_id)``
 
-BM25 in-process sui chunk + ricerca densa su Qdrant, fusi con Reciprocal
-Rank Fusion. Se Qdrant o l'embedding falliscono, resta il BM25.
+Guida, chat e scenari usano Qdrant come fonte primaria (BM25 solo se il
+servizio o gli embedding non rispondono). La ricerca della home combina
+ranking lessicale e semantico con Reciprocal Rank Fusion.
 """
 from __future__ import annotations
 
@@ -56,12 +57,13 @@ SINONIMI = {
 
 _chunks: list[dict[str, Any]] | None = None
 _chunk_by_id: dict[str, dict[str, Any]] = {}
+_chunks_per_farmaco_map: dict[str, list[dict[str, Any]]] = {}
 _blocchi: dict[str, dict[str, Any]] = {}
 _blocchi_per_farmaco: dict[str, list[dict[str, Any]]] = {}
 
 
 def _load() -> None:
-    global _chunks, _chunk_by_id, _blocchi, _blocchi_per_farmaco
+    global _chunks, _chunk_by_id, _blocchi, _blocchi_per_farmaco, _chunks_per_farmaco_map
     if _chunks is not None:
         return
 
@@ -83,10 +85,15 @@ def _load() -> None:
             blocchi[row["blocco_id"]] = row
             per_farmaco.setdefault(row["farmaco_id"], []).append(row)
 
+    chunks_per_farmaco: dict[str, list[dict[str, Any]]] = {}
+    for chunk in chunks:
+        chunks_per_farmaco.setdefault(chunk.get("farmaco_id", ""), []).append(chunk)
+
     _chunks = chunks
     _chunk_by_id = {chunk["chunk_id"]: chunk for chunk in chunks}
     _blocchi = blocchi
     _blocchi_per_farmaco = per_farmaco
+    _chunks_per_farmaco_map = chunks_per_farmaco
 
 
 def blocchi_per_farmaco(farmaco_id: str) -> list[dict[str, Any]]:
@@ -101,7 +108,7 @@ def trova_blocco(blocco_id: str) -> dict[str, Any] | None:
 
 def _chunks_per_farmaco(farmaco_id: str) -> list[dict[str, Any]]:
     _load()
-    return [chunk for chunk in _chunks or [] if chunk.get("farmaco_id") == farmaco_id]
+    return _chunks_per_farmaco_map.get(farmaco_id, [])
 
 
 def espandi_sinonimi(query: str) -> str:
@@ -283,28 +290,29 @@ def cerca(
     limite: int = 5,
     query_intento: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Restituisce i blocchi più pertinenti per un foglio illustrativo."""
-    bm25_results = _bm25_chunks(
+    """Restituisce i blocchi più pertinenti per un foglio illustrativo.
+
+    La ricerca semantica è il comportamento predefinito di chat, guida e
+    scenari; BM25 resta solo come fallback quando Qdrant o gli embedding non
+    sono disponibili (o quando i test forzano ``RETRIEVAL_MODE=bm25``).
+    """
+    testo_query = espandi_sinonimi(query_intento or query)
+
+    if RETRIEVAL_MODE != "bm25":
+        dense_results = _dense_results(testo_query, farmaco_id, limite=max(limite, 20))
+        if dense_results:
+            return dense_results[:limite]
+
+    return _bm25_chunks(
         query,
         _chunks_per_farmaco(farmaco_id),
         limite=max(limite, 20),
         query_intento=query_intento or query,
-    )
-
-    if RETRIEVAL_MODE != "hybrid":
-        return bm25_results[:limite]
-
-    dense_results = _dense_results(query, farmaco_id, limite=max(limite, 20))
-    if not dense_results:
-        return bm25_results[:limite]
-    return _fuse_rrf(bm25_results, dense_results, limite=limite)
+    )[:limite]
 
 
-def cerca_farmaci(query: str, limite: int = 10) -> list[dict[str, Any]]:
-    """Cerca su tutti i fogli e aggrega i punteggi per farmaco."""
-    if not query.strip():
-        return []
-
+def _farmaci_lessicali(query: str) -> list[dict[str, Any]]:
+    """Candidati per parole chiave su tutto il corpus."""
     _load()
     termini = tokenizza(espandi_sinonimi(query))
     idf = _idf(termini, _chunks or [])
@@ -373,8 +381,106 @@ def cerca_farmaci(query: str, limite: int = 10) -> list[dict[str, Any]]:
                     }
                 )
 
-    risultati.sort(key=lambda item: item["score"], reverse=True)
-    return risultati[:limite]
+    return risultati
+
+
+def _dense_farmaci(query: str, massimo: int = 30) -> list[tuple[str, float]]:
+    """Aggrega i chunk semantici per foglio, mantenendo l'ordine di ranking."""
+    try:
+        from services import vector_store
+
+        hits = vector_store.query_dense(
+            espandi_sinonimi(query),
+            farmaco_id=None,
+            n_results=120,
+        )
+    except Exception:
+        logger.warning("Ricerca semantica dei farmaci non disponibile", exc_info=True)
+        return []
+
+    visti: dict[str, float] = {}
+    for hit in hits:
+        farmaco_id = str(hit.get("farmaco_id") or "")
+        if not farmaco_id or farmaco_id in visti:
+            continue
+        if farmaci.get(farmaco_id) is None:
+            continue
+        visti[farmaco_id] = float(hit.get("score_dense", 0.0))
+        if len(visti) >= massimo:
+            break
+    return list(visti.items())
+
+
+def _fuse_farmaci(
+    lessicali: list[dict[str, Any]],
+    densi: list[tuple[str, float]],
+    limite: int,
+) -> list[dict[str, Any]]:
+    """Unisce ranking lessicale e semantico con Reciprocal Rank Fusion."""
+    fusi: dict[str, dict[str, Any]] = {}
+
+    for rank, risultato in enumerate(
+        sorted(lessicali, key=lambda item: item["score"], reverse=True)
+    ):
+        fusi[risultato["id"]] = {
+            "risultato": risultato,
+            "rrf": 1.0 / (RRF_K + rank + 1),
+        }
+
+    for rank, (farmaco_id, punteggio_denso) in enumerate(densi):
+        farmaco = farmaci.get(farmaco_id)
+        if farmaco is None:
+            continue
+        voce = fusi.get(farmaco_id)
+        if voce is None:
+            voce = {
+                "risultato": {
+                    "id": farmaco_id,
+                    "nome": farmaco.nome,
+                    "principio_attivo": farmaco.principio_attivo,
+                    "score": round(punteggio_denso * 100, 2),
+                    "motivo": (
+                        "Corrispondenza nel contenuto del foglio "
+                        "(ricerca semantica)"
+                    ),
+                },
+                "rrf": 0.0,
+            }
+            fusi[farmaco_id] = voce
+        voce["rrf"] += 1.0 / (RRF_K + rank + 1)
+
+    for voce in fusi.values():
+        motivo = voce["risultato"]["motivo"]
+        bonus = 0.0
+        if "nome del farmaco" in motivo:
+            bonus = 0.06
+        elif "principio attivo" in motivo:
+            bonus = 0.04
+        voce["chiave"] = bonus + voce["rrf"]
+
+    ordinati = sorted(
+        fusi.values(),
+        key=lambda voce: (voce["chiave"], voce["risultato"]["score"]),
+        reverse=True,
+    )
+    return [voce["risultato"] for voce in ordinati][:limite]
+
+
+def cerca_farmaci(query: str, limite: int = 10) -> list[dict[str, Any]]:
+    """Cerca su tutti i fogli combinando parole chiave e semantica."""
+    if not query.strip():
+        return []
+
+    lessicali = _farmaci_lessicali(query)
+    if RETRIEVAL_MODE == "bm25":
+        lessicali.sort(key=lambda item: item["score"], reverse=True)
+        return lessicali[:limite]
+
+    densi = _dense_farmaci(query)
+    if not densi:
+        lessicali.sort(key=lambda item: item["score"], reverse=True)
+        return lessicali[:limite]
+    return _fuse_farmaci(lessicali, densi, limite=limite)
 
 
 def reset_cache() -> None:
@@ -382,5 +488,6 @@ def reset_cache() -> None:
     global _chunks
     _chunks = None
     _chunk_by_id.clear()
+    _chunks_per_farmaco_map.clear()
     _blocchi.clear()
     _blocchi_per_farmaco.clear()

@@ -1,9 +1,13 @@
 """Modalità guidata "Una cosa alla volta".
 
-Le schermate sono estratte in modo deterministico dai blocchi del foglio
-illustrativo: nessuna chiamata al modello, nessun testo inventato. Ogni
-schermata mantiene il riferimento esatto al blocco originale, così il
-frontend può evidenziarlo nel pannello AIFA.
+Ogni schermata è una domanda precisa ("a cosa serve?", "come si prende?",
+"cosa non fare?", "quando chiamare il medico?"). I blocchi vengono recuperati
+con lo stesso retrieval del chatbot (ibrido BM25 + Qdrant in produzione, BM25
+nei test) e poi ridotti a una finestra breve. Nessun testo viene inventato:
+la citazione resta una sottostringa esatta del blocco originale.
+
+Le euristiche sui titoli restano solo come fallback quando il retrieval non
+trova un passaggio con le parole chiave attese.
 """
 from __future__ import annotations
 
@@ -11,11 +15,117 @@ import re
 from typing import Any
 
 from app import farmaci
-from services.citazioni import finestra_frasi
-from services.retrieval import blocchi_per_farmaco
+from services.citazioni import (
+    conta_parole_chiave,
+    finestra_ancorata,
+    finestra_dose,
+    finestra_frasi,
+)
+from services.retrieval import blocchi_per_farmaco, cerca
 
 MAX_CARATTERI_SCHERMATA = 550
 MAX_FRASI_SCHERMATA = 3
+
+# Parole che indicano davvero il contenuto cercato. Servono sia a scegliere il
+# blocco giusto (i titoli del PDF a volte sono sbagliati o fuori ordine) sia a
+# verificare che la finestra estratta contenga l'informazione.
+INDICAZIONE_RICHIESTA = (
+    "indicato per",
+    "indicata per",
+    "è indicato",
+    "è indicata",
+    "viene utilizzato",
+    "viene utilizzata",
+    "è utilizzato",
+    "è utilizzata",
+    "essere utilizzato",
+    "essere utilizzata",
+    "essere utilizzati",
+    "essere utilizzate",
+    "è usato",
+    "è usata",
+    "sono usati",
+    "sono usate",
+    "si usa per",
+    "serve per",
+    "serve a",
+    "allevia",
+    "riduce",
+    "per il trattamento",
+    "per la prevenzione",
+    "trattamento sintomatico",
+    "per alleviare",
+    "per ridurre",
+    "per curare",
+    "sintomi di",
+    "cura di",
+)
+INDICAZIONE = (
+    "indicato",
+    "indicata",
+    "utilizzato",
+    "utilizzata",
+    "usato",
+    "usata",
+    "serve",
+    "allevia",
+    "riduce",
+    "trattamento",
+    "sintomi",
+    "dolore",
+    "febbre",
+    "infezione",
+    "infiammazione",
+    "prevenire",
+    "prevenzione",
+    "terapia",
+)
+DOSE = (
+    "dose",
+    "dosaggio",
+    "mg",
+    "ml",
+    "compressa",
+    "compresse",
+    "capsule",
+    "gocce",
+    "supposte",
+    "bustine",
+    "siringa",
+    "ogni",
+    "ore",
+    "giorno",
+    "adulti",
+    "bambini",
+    "bambino",
+)
+NON_FARE = (
+    "non usi",
+    "non prenda",
+    "non deve",
+    "non devono",
+    "non somministri",
+    "non usare",
+    "allergico",
+    "allergica",
+    "allergia",
+    "controindicazioni",
+    "controindicato",
+)
+MEDICO = (
+    "medico",
+    "farmacista",
+    "infermiere",
+    "immediatamente",
+    "pronto soccorso",
+    "112",
+    "interrompa",
+    "contatti",
+    "contattare",
+    "rivolga",
+    "chiami",
+    "consulti",
+)
 
 # Ogni schermata dichiara come scegliere il blocco sorgente e quali parole
 # privilegiare nella finestra di frasi. L'ordine è l'ordine del percorso.
@@ -25,44 +135,70 @@ SCHERMATE: list[dict[str, Any]] = [
         "titolo": "A cosa serve",
         "icona": "info",
         "descrizione": "Per che cosa è indicato questo medicinale.",
+        "query": (
+            "a cosa serve il medicinale indicazioni terapeutiche per quali "
+            "disturbi sintomi viene utilizzato"
+        ),
+        "finestra": "indicazione",
         "sezione": ("che cos", "a cosa serve", "indicazioni"),
         "paragrafo": (),
-        "parole": (),
+        "parole": INDICAZIONE,
+        "contenuto": INDICAZIONE,
+        "richiede": INDICAZIONE_RICHIESTA,
     },
     {
         "id": "come_si_prende",
         "titolo": "Come si prende",
         "icona": "compressa",
         "descrizione": "La dose e gli intervalli indicati nel foglio.",
-        "sezione": (),
-        "paragrafo": ("come prendere",),
-        "parole": (
-            "compress",
-            "mg",
-            "dose",
-            "giorno",
-            "ore",
-            "ogni",
-            "assuma",
-            "adulti",
-            "raccomandata",
-            "singola",
+        "finestra": "dose",
+        "query": (
+            "come si prende la dose quante compresse quante gocce ogni quante "
+            "ore al giorno posologia"
         ),
+        "sezione": (),
+        "paragrafo": (
+            "come prendere",
+            "come usare",
+            "come assumere",
+            "posologia",
+            "modo di somministrazione",
+        ),
+        "parole": DOSE,
+        "contenuto": DOSE,
+        "richiede": DOSE,
     },
     {
         "id": "cosa_non_fare",
         "titolo": "Cosa non fare",
         "icona": "divieto",
         "descrizione": "Le situazioni in cui non deve prendere il medicinale.",
+        "query": (
+            "quando non devo prendere il medicinale controindicazioni allergia "
+            "non prenda non usi"
+        ),
         "sezione": (),
-        "paragrafo": ("non prenda", "controindicazioni"),
-        "parole": ("non", "allergia", "grave", "fegato", "reni", "eviti"),
+        "paragrafo": (
+            "non prenda",
+            "non usi",
+            "non dia",
+            "non somministri",
+            "non assuma",
+            "controindicazioni",
+        ),
+        "parole": NON_FARE,
+        "contenuto": NON_FARE,
+        "richiede": NON_FARE,
     },
     {
         "id": "quando_medico",
         "titolo": "Quando chiamare il medico",
         "icona": "telefono",
         "descrizione": "I segnali per cui serve un professionista.",
+        "query": (
+            "quando devo chiamare il medico effetti indesiderati gravi "
+            "interrompere il trattamento pronto soccorso"
+        ),
         "sezione": (),
         "paragrafo": (
             "effetti indesiderati",
@@ -71,42 +207,19 @@ SCHERMATE: list[dict[str, Any]] = [
             "durante il trattamento",
             "condizioni a cui",
         ),
-        "richiede": (
-            "medico",
-            "farmacista",
-            "immediatamente",
-            "pronto soccorso",
-            "112",
-            "interrompa",
-            "contatti",
-        ),
-        "parole": (
-            "medico",
-            "farmacista",
-            "immediatamente",
-            "pronto soccorso",
-            "112",
-            "grave",
-            "reazione",
-            "sintomi",
-            "contatti",
-            "consulti",
-            "rivolga",
-            "interrompa",
-            "chiami",
-        ),
+        "parole": MEDICO,
+        "contenuto": MEDICO,
+        "richiede": MEDICO,
     },
 ]
 
-_TITOLI_PARAGRAFO = {
-    "effetti indesiderati": 4,
-    "se prende più": 3,
-    "come prendere": 3,
-    "non prenda": 3,
-    "condizioni a cui": 3,
-    "avvertenze e precauzioni": 2,
-    "durante il trattamento": 1,
-}
+
+def _inizio_pulito(testo: str) -> bool:
+    """Scarta le finestre che iniziano a metà frase."""
+    testo = testo.lstrip()
+    return bool(testo) and (
+        testo[0].isupper() or testo.startswith(("-", "•", "−"))
+    )
 
 
 def _punteggio_blocco(blocco: dict[str, Any], schermata: dict[str, Any]) -> int:
@@ -117,25 +230,25 @@ def _punteggio_blocco(blocco: dict[str, Any], schermata: dict[str, Any]) -> int:
         punteggio += 5
     if any(chiave in paragrafo for chiave in schermata["paragrafo"]):
         punteggio += 4
-    for chiave, bonus in _TITOLI_PARAGRAFO.items():
-        if chiave in paragrafo:
-            punteggio += bonus
+    # Il contenuto conta più del titolo: nei PDF AIFA capita che le sezioni
+    # siano accorpate o etichettate male.
+    if conta_parole_chiave(
+        f"{sezione} {paragrafo} {blocco.get('testo', '')}",
+        schermata["contenuto"],
+    ):
+        punteggio += 3
     return punteggio
 
 
 def _candidati(
     blocchi: list[dict[str, Any]],
     schermata: dict[str, Any],
-    escludi: set[str],
-) -> list[dict[str, Any]]:
-    candidati = [
+) -> list[tuple[int, dict[str, Any]]]:
+    return [
         (punteggio, blocco)
         for blocco in blocchi
-        if blocco["blocco_id"] not in escludi
-        and (punteggio := _punteggio_blocco(blocco, schermata)) > 0
+        if (punteggio := _punteggio_blocco(blocco, schermata)) > 0
     ]
-    candidati.sort(key=lambda item: (item[0], len(item[1]["testo"])), reverse=True)
-    return [blocco for _, blocco in candidati]
 
 
 def _prima_frase(testo: str, limite: int = 150) -> str:
@@ -154,9 +267,7 @@ def _frase_riepilogo(testo: str, parole_chiave: tuple[str, ...]) -> str:
         return _prima_frase(frasi[0])
     migliore = max(
         frasi,
-        key=lambda frase: sum(
-            1 for parola in parole_chiave if parola in frase.lower()
-        ),
+        key=lambda frase: conta_parole_chiave(frase, parole_chiave),
     )
     return _prima_frase(migliore)
 
@@ -165,12 +276,36 @@ def _costruisci_schermata(
     schermata: dict[str, Any],
     blocco: dict[str, Any],
 ) -> dict[str, Any]:
-    testo = finestra_frasi(
-        blocco["testo"],
-        parole_chiave=schermata["parole"],
-        max_frasi=MAX_FRASI_SCHERMATA,
-        max_caratteri=MAX_CARATTERI_SCHERMATA,
-    )
+    if schermata.get("finestra") == "dose":
+        testo = finestra_dose(
+            blocco["testo"],
+            max_frasi=MAX_FRASI_SCHERMATA,
+            max_caratteri=MAX_CARATTERI_SCHERMATA,
+        ) or finestra_frasi(
+            blocco["testo"],
+            parole_chiave=schermata["parole"],
+            max_frasi=MAX_FRASI_SCHERMATA,
+            max_caratteri=MAX_CARATTERI_SCHERMATA,
+        )
+    elif schermata.get("finestra") == "indicazione":
+        testo = finestra_ancorata(
+            blocco["testo"],
+            schermata["richiede"],
+            max_frasi=MAX_FRASI_SCHERMATA,
+            max_caratteri=MAX_CARATTERI_SCHERMATA,
+        ) or finestra_frasi(
+            blocco["testo"],
+            parole_chiave=schermata["parole"],
+            max_frasi=MAX_FRASI_SCHERMATA,
+            max_caratteri=MAX_CARATTERI_SCHERMATA,
+        )
+    else:
+        testo = finestra_frasi(
+            blocco["testo"],
+            parole_chiave=schermata["parole"],
+            max_frasi=MAX_FRASI_SCHERMATA,
+            max_caratteri=MAX_CARATTERI_SCHERMATA,
+        )
     fonte = {
         "blocco_id": blocco["blocco_id"],
         "documento": blocco["documento"],
@@ -189,6 +324,83 @@ def _costruisci_schermata(
     }
 
 
+def _scegli_semantica(
+    farmaco_id: str,
+    specifica: dict[str, Any],
+    blocchi: list[dict[str, Any]],
+    usati: set[str],
+) -> dict[str, Any] | None:
+    """Sceglie il blocco più pertinente per la domanda della schermata."""
+    risultati = list(enumerate(cerca(specifica["query"], farmaco_id, limite=8)))
+    visti = {blocco["blocco_id"] for _, blocco in risultati}
+    # Il retrieval può non restituire la sezione ovvia (titoli AIFA anomali):
+    # la aggiungiamo in coda, senza togliere priorità ai risultati semantici.
+    extra = [
+        blocco
+        for _, blocco in _candidati(blocchi, specifica)
+        if blocco["blocco_id"] not in visti
+    ]
+    candidati = risultati + [
+        (len(risultati) + offset, blocco) for offset, blocco in enumerate(extra)
+    ]
+
+    proposte = []
+    for rank, blocco in candidati:
+        proposta = _costruisci_schermata(specifica, blocco)
+        parole = conta_parole_chiave(proposta["testi"][0], specifica["richiede"])
+        proposte.append(
+            (
+                parole > 0,
+                _punteggio_blocco(blocco, specifica),
+                parole,
+                _inizio_pulito(proposta["testi"][0]),
+                -rank,
+                blocco["blocco_id"] not in usati,
+                len(blocco["testo"]),
+                proposta,
+            )
+        )
+
+    valide = [proposta for proposta in proposte if proposta[0]]
+    if not valide:
+        return None
+
+    # La finestra deve contenere l'informazione attesa; poi contano la
+    # pertinenza strutturale (titolo), la qualità della finestra e la posizione
+    # nel ranking semantico.
+    return max(
+        valide,
+        key=lambda item: (item[1], item[2], item[3], item[4], item[5], item[6]),
+    )[7]
+
+
+def _scegli_deterministica(
+    blocchi: list[dict[str, Any]],
+    specifica: dict[str, Any],
+    usati: set[str],
+) -> dict[str, Any] | None:
+    """Fallback sui titoli, se il retrieval non trova il passaggio atteso."""
+    proposte = []
+    for punteggio, blocco in _candidati(blocchi, specifica):
+        proposta = _costruisci_schermata(specifica, blocco)
+        proposte.append(
+            (
+                conta_parole_chiave(proposta["testi"][0], specifica["richiede"]),
+                punteggio,
+                blocco["blocco_id"] not in usati,
+                blocco,
+                proposta,
+            )
+        )
+    valide = [proposta for proposta in proposte if proposta[0] > 0]
+    if not valide:
+        return None
+    return max(
+        valide,
+        key=lambda item: (item[1], item[0], item[2], len(item[3]["testo"])),
+    )[4]
+
+
 def guida(farmaco_id: str) -> dict[str, Any]:
     """Restituisce il percorso guidato in quattro schermate."""
     farmaco = farmaci.require(farmaco_id)
@@ -199,18 +411,9 @@ def guida(farmaco_id: str) -> dict[str, Any]:
     schermate: list[dict[str, Any]] = []
     usati: set[str] = set()
     for specifica in SCHERMATE:
-        candidati = _candidati(blocchi, specifica, usati)
-        scelta: dict[str, Any] | None = None
-        for blocco in candidati:
-            proposta = _costruisci_schermata(specifica, blocco)
-            richiede = specifica.get("richiede") or ()
-            if not richiede or any(
-                parola in proposta["testi"][0].lower() for parola in richiede
-            ):
-                scelta = proposta
-                break
-        if scelta is None and candidati:
-            scelta = _costruisci_schermata(specifica, candidati[0])
+        scelta = _scegli_semantica(farmaco_id, specifica, blocchi, usati)
+        if scelta is None:
+            scelta = _scegli_deterministica(blocchi, specifica, usati)
         if scelta is None:
             continue
         usati.add(scelta["fonti"][0]["blocco_id"])
