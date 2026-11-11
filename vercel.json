@@ -29,7 +29,12 @@
     { "source": "/farmaco/moment", "destination": "/farmaco/025669_01", "permanent": true },
     { "source": "/farmaco/moment/:path*", "destination": "/farmaco/025669_01/:path*", "permanent": true },
     { "source": "/farmaco/plasil", "destination": "/farmaco/020766_02", "permanent": true },
-    { "source": "/farmaco/plasil/:path*", "destination": "/farmaco/020766_02/:path*", "permanent": true }
+    { "source": "/farmaco/plasil/:path*", "destination": "/farmaco/020766_02/:path*", "permanent": true },
+    { "source": "/scheda/tachipirina_1000", "destination": "/scheda/012745_01", "permanent": true },
+    { "source": "/scheda/aspirina_500", "destination": "/scheda/004763_01", "permanent": true },
+    { "source": "/scheda/augmentin", "destination": "/scheda/026089_01", "permanent": true },
+    { "source": "/scheda/moment", "destination": "/scheda/025669_01", "permanent": true },
+    { "source": "/scheda/plasil", "destination": "/scheda/020766_02", "permanent": true }
   ],
   "crons": [
     {
