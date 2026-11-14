@@ -8,7 +8,7 @@ import {
   type ScenarioPreview,
   type ScenarioResponse,
 } from "@/lib/api"
-import { icona } from "@/lib/icone"
+import { IconaGuida } from "@/components/Icone"
 import { useTTS } from "@/hooks/useTTS"
 
 interface ScenarioWizardProps {
@@ -196,8 +196,11 @@ export function ScenarioWizard({
                       onClick={() => scegli(scenario.id)}
                       className="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <span className="text-2xl mr-3" aria-hidden="true">
-                        {icona(scenario.icona)}
+                      <span
+                        className="inline-block align-middle mr-3"
+                        aria-hidden="true"
+                      >
+                        <IconaGuida nome={scenario.icona} size={22} className="text-blue-600" />
                       </span>
                       <span className="font-semibold text-gray-900">
                         {scenario.titolo}

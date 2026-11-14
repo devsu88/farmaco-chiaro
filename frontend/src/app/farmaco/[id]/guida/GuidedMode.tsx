@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { api, type GuidaResponse } from "@/lib/api"
-import { icona } from "@/lib/icone"
+import {
+  IconaArrowLeft,
+  IconaArrowRight,
+  IconaCheckCircle,
+  IconaContrasto,
+  IconaGuida,
+  IconaShare,
+  IconaTestoGrande,
+  IconaVolume2,
+} from "@/components/Icone"
+import { Skeleton } from "@/components/Skeleton"
 import { useTTS } from "@/hooks/useTTS"
 
 export function GuidedMode({ farmacoId }: { farmacoId: string }) {
@@ -44,25 +54,33 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4" />
-        <p className="text-gray-700">Preparo il percorso guidato...</p>
+      <div
+        aria-busy="true"
+        className="min-h-screen bg-[#fbfcfe] flex flex-col items-center justify-center p-8"
+      >
+        <Skeleton className="h-8 w-48 mb-6" />
+        <Skeleton className="h-72 w-full max-w-3xl" />
+        <p className="sr-only">Preparo il percorso guidato...</p>
       </div>
     )
   }
 
   if (error || !guida) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8">
-        <div role="alert" className="max-w-md bg-red-50 border border-red-200 rounded-lg p-6">
+      <div className="min-h-screen bg-[#fbfcfe] flex flex-col items-center justify-center p-8">
+        <div
+          role="alert"
+          className="max-w-md bg-white border border-gray-200 border-l-[3px] border-l-red-600 rounded-md p-6"
+        >
           <h1 className="text-lg font-semibold text-red-900 mb-2">
             Guida non disponibile
           </h1>
           <p className="text-sm text-red-800 mb-4">{error}</p>
           <Link
             href={`/farmaco/${farmacoId}`}
-            className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="inline-flex items-center gap-1.5 border-b-2 border-blue-600 pb-0.5 text-sm font-semibold uppercase tracking-wider text-blue-800 hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm"
           >
+            <IconaArrowLeft size={14} />
             Torna al foglio illustrativo
           </Link>
         </div>
@@ -79,13 +97,29 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
     ? [schermata.titolo, ...schermata.testi].join(" ")
     : ["Riepilogo", ...guida.riepilogo].join(" ")
 
+  // Palette: superfici bianche e bordi sottili nel tema normale; nero/giallo
+  // nell'alto contrasto. Le azioni primarie diventano link-azioni, l'unico
+  // bottone pieno è "Avanti" (scuro, giallo nell'alto contrasto).
   const classiContenitore = contrasto
     ? "bg-black text-yellow-100"
-    : "bg-gray-50 text-gray-900"
+    : "bg-[#fbfcfe] text-gray-900"
   const classiCard = contrasto
     ? "bg-black border-yellow-300 text-yellow-100"
     : "bg-white border-gray-200 text-gray-900"
   const classiTesto = testoGrande ? "text-2xl md:text-3xl" : "text-lg md:text-xl"
+  const classiAzioneAscolta = contrasto
+    ? "border-yellow-300 text-yellow-100"
+    : "border-green-700 text-green-800"
+  const classiEtichettaTecnica = contrasto
+    ? "text-yellow-100/80"
+    : "text-gray-500"
+  const classiPulsantiAccessibilita = contrasto
+    ? "border-yellow-300 text-yellow-100"
+    : "border-gray-200 text-gray-600"
+  const classiPulsanteAvanti = contrasto
+    ? "bg-yellow-300 text-black hover:bg-yellow-200"
+    : "bg-gray-900 text-white hover:bg-gray-800"
+  const classiIconaSchermata = contrasto ? "text-yellow-100" : "text-blue-600"
 
   const vaiA = (nuovoIndice: number) => {
     stop()
@@ -104,9 +138,10 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
           <div className="flex items-center gap-3">
             <Link
               href={`/farmaco/${farmacoId}`}
-              className="text-sm underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+              className="inline-flex items-center gap-1.5 border-b border-blue-600 pb-0.5 text-sm text-blue-800 hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm"
             >
-              ← Torna al foglio
+              <IconaArrowLeft size={14} />
+              Torna al foglio
             </Link>
             <span className="text-sm font-medium">{guida.nome}</span>
           </div>
@@ -114,21 +149,23 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
             <button
               onClick={() => setTestoGrande((valore) => !valore)}
               aria-pressed={testoGrande}
-              className="px-3 py-1.5 text-xs font-medium border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`inline-flex items-center gap-1.5 border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${classiPulsantiAccessibilita}`}
             >
+              <IconaTestoGrande size={12} />
               {testoGrande ? "Testo normale" : "Testo grande"}
             </button>
             <button
               onClick={() => setContrasto((valore) => !valore)}
               aria-pressed={contrasto}
-              className="px-3 py-1.5 text-xs font-medium border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`inline-flex items-center gap-1.5 border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${classiPulsantiAccessibilita}`}
             >
+              <IconaContrasto size={12} />
               {contrasto ? "Contrasto normale" : "Alto contrasto"}
             </button>
           </div>
         </div>
         <div
-          className="h-2 bg-gray-200"
+          className="h-1.5 bg-gray-200"
           role="progressbar"
           aria-valuenow={passo}
           aria-valuemin={1}
@@ -136,25 +173,27 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
           aria-label="Avanzamento del percorso"
         >
           <div
-            className="h-2 bg-blue-600 transition-all"
+            className={`h-1.5 transition-all ${contrasto ? "bg-yellow-300" : "bg-blue-600"}`}
             style={{ width: `${(passo / totale) * 100}%` }}
           />
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8">
-        <p className="text-sm font-medium mb-2">
+        <p
+          className={`text-[10px] font-semibold uppercase tracking-wider mb-2 ${classiEtichettaTecnica}`}
+        >
           Passo {passo} di {totale}
         </p>
 
         <section
           aria-live="polite"
-          className={`rounded-2xl border p-6 md:p-10 shadow-sm ${classiCard}`}
+          className={`rounded-md border p-6 md:p-10 ${classiCard}`}
         >
           {schermata ? (
             <>
-              <div className="text-5xl mb-4" aria-hidden="true">
-                {icona(schermata.icona)}
+              <div className="mb-4" aria-hidden="true">
+                <IconaGuida nome={schermata.icona} size={32} className={classiIconaSchermata} />
               </div>
               <h1
                 ref={titoloRef}
@@ -167,18 +206,23 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
                 {schermata.testi.join("\n\n")}
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-2">
+              <div className="mt-6 flex flex-wrap items-center gap-4">
                 <button
                   onClick={() => speak(testoSchermata)}
                   disabled={ttsLoading}
-                  className="px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className={`inline-flex items-center gap-1.5 border-b-2 pb-0.5 text-sm font-semibold uppercase tracking-wider hover:opacity-80 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-sm ${classiAzioneAscolta}`}
                 >
+                  <IconaVolume2 size={14} />
                   {ttsLoading ? "Preparo l'audio..." : speaking ? "Riascolta" : "Ascolta"}
                 </button>
                 {speaking && (
                   <button
                     onClick={stop}
-                    className="px-4 py-3 border rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    className={`px-3 py-1.5 border rounded-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 ${
+                      contrasto
+                        ? "border-yellow-300 text-yellow-100"
+                        : "border-gray-300 text-gray-700"
+                    }`}
                   >
                     Ferma
                   </button>
@@ -193,17 +237,17 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
               {schermata.fonti.map((fonte, posizione) => (
                 <details
                   key={`${fonte.blocco_id ?? "fonte"}-${posizione}`}
-                  className={`mt-6 rounded-lg border p-4 text-sm ${
+                  className={`mt-6 rounded-md border p-4 text-sm ${
                     contrasto ? "border-yellow-300" : "border-gray-200 bg-gray-50"
                   }`}
                 >
                   <summary className="cursor-pointer font-medium">
                     Vedi la fonte nel foglio illustrativo
                   </summary>
-                  <blockquote className="mt-3 italic">
+                  <blockquote className="mt-3 italic border-l-2 border-gray-300 pl-3">
                     “{fonte.testo_evidenziato}”
                   </blockquote>
-                  <p className="mt-2 text-xs opacity-80">
+                  <p className={`mt-2 text-xs ${classiEtichettaTecnica}`}>
                     {fonte.sezione}
                     {fonte.paragrafo ? `, ${fonte.paragrafo}` : ""}
                   </p>
@@ -220,8 +264,8 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
             </>
           ) : (
             <>
-              <div className="text-5xl mb-4" aria-hidden="true">
-                ✅
+              <div className="mb-4" aria-hidden="true">
+                <IconaCheckCircle size={32} className={contrasto ? "text-yellow-100" : "text-green-700"} />
               </div>
               <h1
                 ref={titoloRef}
@@ -236,18 +280,24 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
                 ))}
               </ul>
 
-              <div className="mt-8 flex flex-wrap gap-2">
+              <div className="mt-8 flex flex-wrap items-center gap-4">
                 <button
                   onClick={() => speak(testoSchermata)}
                   disabled={ttsLoading}
-                  className="px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className={`inline-flex items-center gap-1.5 border-b-2 pb-0.5 text-sm font-semibold uppercase tracking-wider hover:opacity-80 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-sm ${classiAzioneAscolta}`}
                 >
+                  <IconaVolume2 size={14} />
                   {ttsLoading ? "Preparo l'audio..." : speaking ? "Riascolta" : "Ascolta tutto"}
                 </button>
                 <Link
                   href={`/scheda/${farmacoId}`}
-                  className="px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`inline-flex items-center gap-1.5 border-b-2 pb-0.5 text-sm font-semibold uppercase tracking-wider hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-sm ${
+                    contrasto
+                      ? "border-yellow-300 text-yellow-100"
+                      : "border-blue-600 text-blue-800"
+                  }`}
                 >
+                  <IconaShare size={14} />
                   Invia a un familiare
                 </Link>
               </div>
@@ -264,28 +314,35 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
           <button
             onClick={() => vaiA(indice - 1)}
             disabled={indice === 0}
-            className="px-5 py-3 rounded-lg border font-medium disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            ← Indietro
+            <IconaArrowLeft size={14} />
+            Indietro
           </button>
           {!riepilogo ? (
             <button
               onClick={() => vaiA(indice + 1)}
-              className="px-5 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold uppercase tracking-wider rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${classiPulsanteAvanti}`}
             >
-              {indice === schermate.length - 1 ? "Vedi il riepilogo" : "Avanti →"}
+              {indice === schermate.length - 1 ? "Vedi il riepilogo" : "Avanti"}
+              <IconaArrowRight size={14} />
             </button>
           ) : (
             <Link
               href={`/farmaco/${farmacoId}`}
-              className="px-5 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold uppercase tracking-wider rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${classiPulsanteAvanti}`}
             >
               Torna al foglio
+              <IconaArrowRight size={14} />
             </Link>
           )}
         </nav>
 
-        <p className="text-xs opacity-70 mt-8 text-center">
+        <p
+          className={`text-xs mt-8 text-center ${
+            contrasto ? "text-yellow-100/70" : "text-gray-500"
+          }`}
+        >
           La guida riporta il testo del foglio illustrativo AIFA. Non sostituisce
           il medico o il farmacista.
         </p>
