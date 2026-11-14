@@ -5,7 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
-  type KeyboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -88,6 +88,9 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   // Ultima fonte evidenziata, leggibile anche da dentro `semplifica()` mentre
   // la richiesta è in volo.
   const fonteEvidenziataRef = useRef<FonteCitata | null>(null)
+  // Focus management del drawer chat: stesso schema dello ScenarioWizard.
+  const chatDrawerRef = useRef<HTMLDivElement>(null)
+  const chatFocusPrecedente = useRef<HTMLElement | null>(null)
 
   const impostaFonte = useCallback((fonte: FonteCitata | null) => {
     fonteEvidenziataRef.current = fonte
@@ -107,7 +110,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   const semplifica = useCallback(
     // `notifica` distingue la generazione chiesta dall'utente dal caricamento
     // automatico di una versione già generata: il secondo è silenzioso.
-    async (forza = false, mantieniFonte = false, notifica = true) => {
+    async (forza = false, notifica = true) => {
       if (semplificandoRef.current) return
       const idChiamata = farmacoId
       semplificandoRef.current = true
@@ -124,11 +127,9 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
         // riguarda una richiesta superata: scartala.
         if (farmacoIdRef.current !== idChiamata) return
         setVersioneFacile(versione)
-        // Con il caricamento automatico la fonte citata dall'URL resta
-        // l'elemento su cui l'utente è arrivato; una citazione arrivata dalla
-        // chat durante il volo non va persa: la cancelliamo solo se non ce
-        // n'è già una attiva.
-        if (!mantieniFonte && !fonteEvidenziataRef.current) impostaFonte(null)
+        // Preserva una citazione arrivata durante il volo: non azzera una
+        // fonte già attiva.
+        if (!fonteEvidenziataRef.current) impostaFonte(null)
         registraVersioneGenerata(farmacoId)
         if (notifica) {
           setToast(
@@ -238,7 +239,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
       // storage non disponibile o il farmaco mai generato resta il CTA.
       // Il ricaricamento è atteso e silenzioso: nessun toast.
       if (versioneGiaGenerata(farmacoId)) {
-        void semplifica(false, true, false)
+        void semplifica(false, false)
       }
     }
 
@@ -252,13 +253,53 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
     ? [versioneFacile.una_frase, ...versioneFacile.versione_facile].join(" ")
     : ""
 
-  const onKeyDownTab = (event: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDownTab = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
     event.preventDefault()
     const nuova: Vista = vista === "semplice" ? "originale" : "semplice"
     setVista(nuova)
     document.getElementById(`tab-${nuova}`)?.focus()
   }
+
+  // Focus iniziale, trap di Tab, Escape per chiudere e ripristino del focus:
+  // stesso pattern dello ScenarioWizard, applicato al wrapper del drawer.
+  useEffect(() => {
+    if (!chatOpen) return
+    chatFocusPrecedente.current = document.activeElement as HTMLElement | null
+
+    const focusabili = () =>
+      chatDrawerRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+
+    focusabili()?.[0]?.focus()
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setChatOpen(false)
+        return
+      }
+      if (event.key !== "Tab") return
+
+      const elementi = focusabili()
+      if (!elementi || elementi.length === 0) return
+      const primo = elementi[0]
+      const ultimo = elementi[elementi.length - 1]
+      if (event.shiftKey && document.activeElement === primo) {
+        event.preventDefault()
+        ultimo.focus()
+      } else if (!event.shiftKey && document.activeElement === ultimo) {
+        event.preventDefault()
+        primo.focus()
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown)
+    return () => {
+      document.removeEventListener("keydown", onKeyDown)
+      chatFocusPrecedente.current?.focus()
+    }
+  }, [chatOpen])
 
   if (loading) {
     return (
@@ -595,7 +636,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
           </div>
         )}
 
-        <p className="mt-8 text-[10px] text-slate-400">
+        <p className="mt-8 text-[10px] text-slate-500">
           Fonte: fogli illustrativi AIFA · Non sostituisce il parere del medico
           o del farmacista.
         </p>
@@ -609,6 +650,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
             className="fixed inset-0 z-20 bg-black/30"
           />
           <div
+            ref={chatDrawerRef}
             role="dialog"
             aria-modal="true"
             aria-label="Chat sul farmaco"

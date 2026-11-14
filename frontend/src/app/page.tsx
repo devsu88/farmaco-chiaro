@@ -85,7 +85,7 @@ export default function Home() {
           <p className="text-sm font-semibold tracking-wider text-slate-900">
             FARMACO<span className="text-blue-600">CHIARO</span>
           </p>
-          <p className="text-right text-[10px] uppercase tracking-wider text-slate-400">
+          <p className="text-right text-[10px] uppercase tracking-wider text-slate-500">
             Fogli illustrativi AIFA
           </p>
         </div>
@@ -115,7 +115,7 @@ export default function Home() {
               già spiegati in modo semplice, con le fonti AIFA verificate.
             </p>
           </div>
-          <p className="mt-2 flex items-center gap-1 text-[10px] text-gray-400">
+          <p className="mt-2 flex items-center gap-1 text-[10px] text-gray-500">
             <IconaInfo size={11} className="shrink-0" />
             Il catalogo è in aggiornamento: nuovi farmaci vengono aggiunti man
             mano.
@@ -157,7 +157,7 @@ export default function Home() {
                 )}
               </span>
             ))}
-            <span className="text-slate-400">(solo sul tuo dispositivo)</span>
+            <span className="text-slate-500">(solo sul tuo dispositivo)</span>
             <button
               type="button"
               onClick={cancellaRicercheRecenti}
@@ -192,7 +192,7 @@ export default function Home() {
       </main>
 
       <footer className="mx-auto max-w-2xl px-4 pb-8">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500">
           Fonte ufficiale: fogli illustrativi AIFA · Non sostituisce il parere
           del medico o del farmacista
         </p>
