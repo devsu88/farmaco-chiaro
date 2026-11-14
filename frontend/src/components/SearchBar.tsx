@@ -8,10 +8,12 @@ interface SearchBarProps {
   placeholder?: string
 }
 
+type StatoRicerca = "idle" | "loading" | "risultati" | "vuoto" | "errore"
+
 export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: SearchBarProps) {
   const [query, setQuery] = useState("")
   const [risultati, setRisultati] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
+  const [stato, setStato] = useState<StatoRicerca>("idle")
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -23,7 +25,7 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
     runIdRef.current += 1
     setRisultati([])
     setIsOpen(false)
-    setLoading(false)
+    setStato("idle")
   }, [])
 
   const cerca = useCallback(async (q: string) => {
@@ -31,22 +33,23 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
     if (!q.trim()) {
       setRisultati([])
       setIsOpen(false)
-      setLoading(false)
+      setStato("idle")
       return
     }
-    setLoading(true)
+    setStato("loading")
     try {
       const res = await api.search(q)
       if (runId !== runIdRef.current) return
       setRisultati(res.risultati)
-      setIsOpen(res.risultati.length > 0)
+      setStato(res.risultati.length > 0 ? "risultati" : "vuoto")
+      // Anche zero risultati meritano il dropdown: spieghiamo cosa fare.
+      setIsOpen(true)
     } catch (err) {
       if (runId !== runIdRef.current) return
       console.error("Errore ricerca:", err)
       setRisultati([])
-      setIsOpen(false)
-    } finally {
-      if (runId === runIdRef.current) setLoading(false)
+      setStato("errore")
+      setIsOpen(true)
     }
   }, [])
 
@@ -84,11 +87,12 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
   const reset = () => {
     chiudi()
     setQuery("")
-    setLoading(false)
     inputRef.current?.focus()
   }
 
-  const listaAperta = isOpen && risultati.length > 0
+  const haRisultati = risultati.length > 0
+  const mostraMessaggio = stato === "vuoto" || stato === "errore"
+  const listaAperta = isOpen && (haRisultati || mostraMessaggio)
 
   return (
     <div ref={containerRef} className="relative w-full max-w-2xl">
@@ -107,7 +111,7 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
           className={`w-full py-3 pl-11 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white ${
             query ? "pr-20" : "pr-4"
           }`}
-          onFocus={() => setIsOpen(risultati.length > 0)}
+          onFocus={() => setIsOpen(haRisultati || mostraMessaggio)}
         />
         <svg
           className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
@@ -125,7 +129,7 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
         </svg>
 
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          {loading && (
+          {stato === "loading" && (
             <svg
               className="w-5 h-5 text-blue-500 animate-spin"
               fill="none"
@@ -165,27 +169,37 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
       {listaAperta && (
         <div
           id="risultati-ricerca"
-          role="listbox"
-          className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          role={haRisultati ? "listbox" : undefined}
+          className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto"
         >
-          {risultati.map((r) => (
-            <button
-              key={r.id}
-              role="option"
-              aria-selected={false}
-              onClick={() => {
-                onSelect(r.id)
-                setQuery("")
-                chiudi()
-              }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
-            >
-              <div className="font-medium text-gray-900">{r.nome}</div>
-              <div className="text-xs text-gray-500">
-                {r.principio_attivo} — {r.motivo}
-              </div>
-            </button>
-          ))}
+          {haRisultati ? (
+            risultati.map((r) => (
+              <button
+                key={r.id}
+                role="option"
+                aria-selected={false}
+                onClick={() => {
+                  onSelect(r.id)
+                  setQuery("")
+                  chiudi()
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+              >
+                <div className="font-medium text-gray-900">{r.nome}</div>
+                <div className="text-xs text-gray-500">
+                  {r.principio_attivo} — {r.motivo}
+                </div>
+              </button>
+            ))
+          ) : stato === "errore" ? (
+            <p role="alert" className="p-4 text-sm text-red-700">
+              La ricerca non è al momento disponibile. Controlla la connessione e riprova.
+            </p>
+          ) : (
+            <p role="status" className="p-4 text-sm text-gray-700">
+              Non ho trovato «{query.trim()}». Prova con il principio attivo (es. paracetamolo invece di Tylenol).
+            </p>
+          )}
         </div>
       )}
     </div>
