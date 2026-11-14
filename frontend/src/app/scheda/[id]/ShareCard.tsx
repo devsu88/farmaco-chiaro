@@ -240,7 +240,7 @@ export function ShareCard({ farmacoId }: { farmacoId: string }) {
         <p className="text-xs text-gray-500 border-t border-gray-200 pt-4">
           {scheda.disclaimer}
         </p>
-        <p className="text-[11px] text-gray-400">
+        <p className="text-[11px] text-gray-500">
           I testi delle sezioni principali sono riportati dal foglio
           illustrativo AIFA; le indicazioni generali di sicurezza sono
           segnalate. Fonti: {scheda.fonti.length} passaggi del foglio.

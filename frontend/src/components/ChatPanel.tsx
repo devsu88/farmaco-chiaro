@@ -182,7 +182,7 @@ export function ChatPanel({
             Invia
           </button>
         </div>
-        <p className="text-[11px] text-gray-400 mt-2 text-center">
+        <p className="text-[11px] text-gray-500 mt-2 text-center">
           Non sostituisce il medico o il farmacista.
         </p>
         {sessioneId && (
