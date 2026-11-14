@@ -154,6 +154,38 @@ richiedono decisione dell'utente):
 4. Ordine di implementazione: **1 → 2 → 3** (la 3 rifinisce le pagine
    già ristrutturate dalla 2).
 
+## Stile visivo — "editoriale clinico" (ruling approvata dall'utente il 2026-11-14)
+
+Dopo la validazione dei mockup l'utente ha chiesto un aspetto più
+professionale e istituzionale e ha scelto lo stile C su tre proposte
+(A portale navy, B teal moderno, C editoriale clinico), rifiutando le emoji
+a favore di un set di icone vettoriali. Riferimento visivo autentico:
+`docs/superpowers/specs/2026-11-14-ux-mockups/schermate-stile-c-iconset.html`
+(tutte le schermate convalidate) e `stile-istituzionale.html` (le tre
+proposte di stile). Regole vincolanti:
+
+- **Superfici:** sfondo pagina `#fbfcfe`-like (gray-50/gray-[#fbfcfe]), card
+  bianche con bordo sottile `gray-200`, raggio piccolo (rounded-sm/md),
+  niente ombre pesanti (al massimo `shadow-sm`).
+- **Identità:** header bianco con logo testuale "FARMACO**CHIARO**"
+  (CHIARO in blu-600), etichette tecniche in maiuscolo con letter-spacing
+  (`tracking-wider text-[10px] font-semibold uppercase`).
+- **Accenti:** barra colorata verticale a sinistra dei contenuti chiave
+  (blu-600 = approfondire, green-600 = versione facile, amber-500 = avvisi)
+  al posto dei blocchi colorati pieni.
+- **Azioni primarie:** link-azioni sottolineati in maiuscoletto con icona
+  (es. «🔊 ASCOLTA», «🧭 GUIDAMI») con `border-bottom`; un solo bottone
+  pieno per schermata al massimo (nero `bg-gray-900` per "AVANTI" nella
+  guida).
+- **Icone:** set Lucide a tratteggio 2px come componenti SVG inline in un
+  unico modulo `frontend/src/components/Icone.tsx` — NESSUNA dipendenza npm
+  (lucide-react non si installa: si copiano i path SVG necessari, licenza
+  ISC, attributo `aria-hidden="true"`). Emoji eliminate dall'interfaccia
+  (restano ammesse solo dove già usate come contenuti, non come icone UI).
+- **Palette funzionale invariata:** verde = versione facile, blu =
+  approfondire, ambra = situazioni reali.
+- **Disclaimer AIFA** sempre visibile nelle pagine di contenuto.
+
 ## Cosa resta al builder
 
 - Testi esatti delle card home e dell'empty state (bozze nel mockup).

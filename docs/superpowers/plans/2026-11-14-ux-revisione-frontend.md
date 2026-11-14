@@ -19,6 +19,8 @@
 - Testo sempre in italiano, registro informale-ma-rispettoso già usato nell'app («Sto caricando…», «Può richiedere fino a 30 secondi»).
 - Il frontend non ha test runner: il ciclo di verifica di ogni task è `npm run lint` (ESLint, da `frontend/`) + `npm run build` (fa anche il type-check TS) + verifica manuale nel browser elencata nel task.
 - Prima di scrivere codice Client Component o routing, consultare `frontend/node_modules/next/dist/docs/` (API Next 16 cambiate rispetto ai ricordi).
+- **Stile visivo "editoriale clinico" (ruling utente 2026-11-14, dettagli nella sezione omonoma della spec):** superfici bianche con bordi sottili `gray-200`, accenti a barra verticale laterale, azioni come link-azioni maiuscoletti sottolineati con icona, label tecniche in maiuscolo con `tracking-wider`, un solo bottone pieno per schermata al massimo (nero `bg-gray-900`), disclaimer AIFA nelle pagine di contenuto, emoji eliminate dall'interfaccia.
+- **Icone:** componenti SVG inline (path Lucide, tratteggio 2px, `aria-hidden`) nel modulo `frontend/src/components/Icone.tsx` creato dal Task 2R — nessuna dipendenza npm. I task 3-9 consumano questo modulo e non introducono emoji nuove.
 
 ## Review Focus
 
@@ -100,6 +102,41 @@ Gli input che la spec implica ma che i passi "felici" dei task non esercitano, c
   ```bash
   git add frontend/src/app/page.tsx
   git commit -m "feat(ui): home come porta d'ingresso con farmaci comuni e ricerche recenti"
+  ```
+
+### Task 2R: Allineamento home allo stile C + modulo icone (ruling utente)
+
+**Files:**
+- Create: `frontend/src/components/Icone.tsx`
+- Modify: `frontend/src/app/page.tsx`
+- Consumes: tutto l'esistente del Task 2 (moduli lib, layout, logica) — cambia SOLO il rivestimento visivo.
+- Produce (consumato dai task 3-9): modulo `Icone.tsx` con componenti SVG inline Lucide (tratteggio 2px, `aria-hidden="true"`):
+  ```ts
+  // firma unica per tutte le icone; ogni icona è un named export
+  export function IconaSearch({ size = 16, className = "" }: { size?: number; className?: string })
+  // nomi richiesti: IconaSearch, IconaInfo, IconaVolume2, IconaHeadphones,
+  // IconaCompass, IconaMessage, IconaShare, IconaMore, IconaX,
+  // IconaArrowLeft, IconaArrowRight, IconaBookOpen, IconaCheckCircle,
+  // IconaClock, IconaTestoGrande, IconaContrasto, IconaRefresh
+  ```
+  (path SVG Lucide; se un nome non serve in un task successivo si omette, ma le icone usate devono venire da questo modulo, mai emoji nuove)
+
+- [ ] **Step 1: Creare `Icone.tsx` con le icone richieste dal mockup validato**
+  Mockup di riferimento: `docs/superpowers/specs/2026-11-14-ux-mockups/schermate-stile-c-iconset.html` — gli SVG sono già lì, si copiano i path. Colore via `currentColor`, dimensione via prop `size`.
+
+- [ ] **Step 2: Riallineare `page.tsx` allo stile C (stessa logica, nuovo rivestimento)**
+  - Header bianco con logo testuale FARMACO**CHIARO** + etichetta «FOGLI ILLUSTRATIVI AIFA» (sostituisce il gradiente e l'emoji 💊).
+  - Titolo con barra laterale blu (`border-l-2 border-blue-600 pl-3`), claim invariato.
+  - SearchBar invariata (Task 3 la lavora), sfondo pagina grigio chiarissimo.
+  - Chips «Più consultati» come link sottolineati blu (`border-b border-blue-600 text-blue-800`), etichetta label tecnica maiuscolo.
+  - Riga ricerche recenti con `IconaInfo` e ✕ sostituita da `IconaX`; privacy note invariata.
+  - Le 3 card diventano colonne divise da `border-r` con `IconaBookOpen`/`IconaCheckCircle`/`IconaHeadphones` in alto, titoli TROVA/LEGGI/ASCOLTA in maiuscolo tecnico, niente sfondi pieni.
+  - Footer disclaimer AIFA.
+- [ ] **Step 3: Verifica lint + build** (`cd frontend && npm run lint && npm run build`), nessun errore, nessun mismatch di idratazione.
+- [ ] **Step 4: Commit**
+  ```bash
+  git add frontend/src/components/Icone.tsx frontend/src/app/page.tsx
+  git commit -m "feat(ui): home allineata allo stile editoriale clinico con modulo icone SVG"
   ```
 
 ### Task 3: SearchBar — empty state e stato di errore
