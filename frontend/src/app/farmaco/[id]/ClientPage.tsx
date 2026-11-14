@@ -76,17 +76,32 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   // Il guard vive in un ref: la callback resta stabile e può essere richiamata
   // dall'effetto di caricamento senza ri-eseguire l'effetto stesso.
   const semplificandoRef = useRef(false)
+  // Farmaco attualmente mostrato: una risposta in volo partita per un altro
+  // farmaco va scartata.
+  const farmacoIdRef = useRef(farmacoId)
+  // Ultima fonte evidenziata, leggibile anche da dentro `semplifica()` mentre
+  // la richiesta è in volo.
+  const fonteEvidenziataRef = useRef<FonteCitata | null>(null)
 
-  const evidenziaFonte = useCallback((fonte: FonteCitata) => {
+  const impostaFonte = useCallback((fonte: FonteCitata | null) => {
+    fonteEvidenziataRef.current = fonte
     setFonteEvidenziata(fonte)
-    setFocusFonte((valore) => valore + 1)
-    // Una citazione vive nel foglio originale: commutiamo la vista per mostrarla.
-    setVista("originale")
   }, [])
+
+  const evidenziaFonte = useCallback(
+    (fonte: FonteCitata) => {
+      impostaFonte(fonte)
+      setFocusFonte((valore) => valore + 1)
+      // Una citazione vive nel foglio originale: commutiamo la vista per mostrarla.
+      setVista("originale")
+    },
+    [impostaFonte]
+  )
 
   const semplifica = useCallback(
     async (forza = false, mantieniFonte = false) => {
       if (semplificandoRef.current) return
+      const idChiamata = farmacoId
       semplificandoRef.current = true
       setSemplificando(true)
       setSimplifyError(null)
@@ -97,12 +112,18 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
           sezione: "tutta",
           forza,
         })
+        // Se nel frattempo la pagina mostra un altro farmaco, la risposta
+        // riguarda una richiesta superata: scartala.
+        if (farmacoIdRef.current !== idChiamata) return
         setVersioneFacile(versione)
-        // Con il caricamento automatico la fonte citata dall'URL (o dalla chat)
-        // resta l'elemento su cui l'utente è arrivato: non la cancelliamo.
-        if (!mantieniFonte) setFonteEvidenziata(null)
+        // Con il caricamento automatico la fonte citata dall'URL resta
+        // l'elemento su cui l'utente è arrivato; una citazione arrivata dalla
+        // chat durante il volo non va persa: la cancelliamo solo se non ce
+        // n'è già una attiva.
+        if (!mantieniFonte && !fonteEvidenziataRef.current) impostaFonte(null)
         registraVersioneGenerata(farmacoId)
       } catch (err) {
+        if (farmacoIdRef.current !== idChiamata) return
         setSimplifyError(
           err instanceof Error ? err.message : "Semplificazione non disponibile"
         )
@@ -111,15 +132,21 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
         setSemplificando(false)
       }
     },
-    [farmacoId]
+    [farmacoId, impostaFonte]
   )
 
   useEffect(() => {
     let cancelled = false
 
     const carica = async () => {
+      farmacoIdRef.current = farmacoId
       setLoading(true)
       setError(null)
+      // Azzera lo stato derivato: navigando tra farmaci non devono restare
+      // versione, vista o fonte del farmaco precedente.
+      setVersioneFacile(null)
+      setVista("semplice")
+      impostaFonte(null)
 
       const [farmacoRes, documentoRes] = await Promise.allSettled([
         api.getFarmaco(farmacoId),
@@ -176,7 +203,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
             (item) => item.blocco_id === bloccoId
           )
           if (!blocco) continue
-          setFonteEvidenziata({
+          impostaFonte({
             blocco_id: blocco.blocco_id,
             documento: documentoCaricato.documento,
             sezione: sezione.titolo,
@@ -202,7 +229,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
     return () => {
       cancelled = true
     }
-  }, [farmacoId, semplifica])
+  }, [farmacoId, semplifica, impostaFonte])
 
   const testoDaLeggere = versioneFacile
     ? [versioneFacile.una_frase, ...versioneFacile.versione_facile].join(" ")
@@ -550,7 +577,12 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
             onClick={() => setChatOpen(false)}
             className="fixed inset-0 z-20 bg-black/30"
           />
-          <div className="fixed inset-y-0 right-0 z-30 flex w-full flex-col overflow-hidden border-l border-gray-200 bg-white shadow-xl sm:max-w-md [&>section]:h-full [&>section]:rounded-none [&>section]:border-0 [&>section]:shadow-none">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Chat sul farmaco"
+            className="fixed inset-y-0 right-0 z-30 flex w-full flex-col overflow-hidden border-l border-gray-200 bg-white shadow-xl sm:max-w-md [&>section]:h-full [&>section]:rounded-none [&>section]:border-0 [&>section]:shadow-none"
+          >
             <ChatPanel
               farmacoId={farmacoId}
               isOpen={chatOpen}

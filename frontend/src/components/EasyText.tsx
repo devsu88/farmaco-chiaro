@@ -19,7 +19,7 @@ export function EasyText({ unaFrase, versioneFacile, glossario, domandeFarmacist
         </div>
         <div className="p-3 bg-amber-50 rounded border border-amber-100">
           <p className="text-sm text-amber-800">
-            La versione semplificata non è disponibile al momento (servizio AI non configurato). Puoi comunque leggere il foglio illustrativo originale a sinistra.
+            La versione semplificata non è disponibile al momento (servizio AI non configurato). Puoi comunque leggere il foglio illustrativo completo nel tab Originale.
           </p>
         </div>
       </div>
