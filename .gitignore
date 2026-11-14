@@ -29,6 +29,7 @@ REPORT.md
 
 # Tooling
 .playwright-mcp/
+.superpowers/
 
 # OS / editor
 .DS_Store

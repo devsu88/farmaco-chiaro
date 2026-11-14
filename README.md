@@ -12,22 +12,41 @@ Aiuta a capire un testo lungo e a preparare le domande da porre a un professioni
 
 Prova l'app online: **https://farmaco-chiaro.vercel.app**
 
-[![Farmaco Chiaro su Vercel](docs/vercel-demo.png)](https://farmaco-chiaro.vercel.app)
+[![Home di Farmaco Chiaro](docs/img/home.png)](https://farmaco-chiaro.vercel.app)
+
+La home offre la ricerca per nome, principio attivo o sintomo, i farmaci più
+consultati e un contatore del catalogo (in aggiornamento continuo).
+
+La pagina del farmaco mostra la **versione facile** (auto-caricata se già
+generata) accanto al foglio originale, sempre consultabile con il toggle
+*Semplice / Originale*:
+
+[![Pagina farmaco con versione facile](docs/img/farmaco.png)](https://farmaco-chiaro.vercel.app)
 
 ## Funzionalità
 
-- **Documento originale integrale**, suddiviso in blocchi citabili e sempre consultabile.
-- **Percorso guidato "Una cosa alla volta"**: quattro schermate semplici, recuperate
-  con ricerca semantica e citate dal foglio, con audio e modalità alto contrasto.
+- **Home come porta d'ingresso**: ricerca con risposte esplicite anche quando
+  non trova nulla, farmaci più consultati, ricerche recenti (solo sul
+  dispositivo) e contatore del catalogo.
+- **Vista Semplice / Originale** con un toggle: la versione facile è al centro,
+  il foglio originale integrale resta a un click.
+- **Versione semplificata**: frase di sintesi, punti chiave, glossario dei
+  termini difficili e domande da fare al farmacista. La prima generazione è
+  sempre un click esplicito; le visite successive la caricano da cache.
+- **Documento originale integrale**, suddiviso in blocchi citabili: ogni
+  citazione evidenzia il paragrafo nel foglio con un flash animato.
+- **Chat con fonti verificabili**: ogni risposta riporta i blocchi usati e
+  porta la vista al paragrafo corrispondente.
+- **Percorso guidato "Una cosa alla volta"**: quattro schermate semplici,
+  recuperate con ricerca semantica e citate dal foglio, con audio e modalità
+  alto contrasto.
 - **"Cosa faccio se…?"**: risposte brevi e citate per dimenticanza, dose doppia,
   reazione avversa e alcol.
 - **Scheda condivisibile con QR e WhatsApp** per familiari e caregiver.
-- **Versione semplificata su richiesta**: frase di sintesi, punti chiave, glossario
-  dei termini difficili e domande da fare al farmacista.
-- **Chat con fonti verificabili**: ogni risposta riporta i blocchi usati e un click
-  evidenzia il paragrafo corrispondente nel documento originale.
 - **Sintesi vocale** della versione semplificata.
-- **Ricerca per nome, principio attivo o sintomo**.
+- **Ricerca per nome, principio attivo o sintomo** (keyword + semantica).
+- **Accessibilità**: skeleton al caricamento, toast di conferma, gestione del
+  focus in chat e menu, rispetto di `prefers-reduced-motion`.
 
 ## Come funziona
 
