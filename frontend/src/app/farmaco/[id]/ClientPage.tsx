@@ -21,6 +21,7 @@ import { ChatPanel } from "@/components/ChatPanel"
 import { ScenarioWizard } from "@/components/ScenarioWizard"
 import { PiuMenu } from "@/components/PiuMenu"
 import { Skeleton } from "@/components/Skeleton"
+import { Toast } from "@/components/Toast"
 import {
   IconaArrowLeft,
   IconaBookOpen,
@@ -49,13 +50,17 @@ const azioneNeutra = `${stileAzione} border-gray-400 text-slate-600 hover:border
 
 export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   const router = useRouter()
+  // Il toast è dichiarato prima di `useTTS`: l'hook segnala quando l'audio
+  // parte davvero, cioè quando la conferma può comparire.
+  const [toast, setToast] = useState<string | null>(null)
+  const notificaAudioPronto = useCallback(() => setToast("Audio pronto"), [])
   const {
     speak,
     stop,
     speaking,
     loading: ttsLoading,
     error: ttsError,
-  } = useTTS()
+  } = useTTS(notificaAudioPronto)
 
   const [farmaco, setFarmaco] = useState<FarmacoDetail | null>(null)
   const [documento, setDocumento] = useState<DocumentoResponse | null>(null)
@@ -123,6 +128,11 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
         // n'è già una attiva.
         if (!mantieniFonte && !fonteEvidenziataRef.current) impostaFonte(null)
         registraVersioneGenerata(farmacoId)
+        setToast(
+          versione.cached
+            ? "Versione già disponibile"
+            : "Versione facile generata"
+        )
       } catch (err) {
         if (farmacoIdRef.current !== idChiamata) return
         setSimplifyError(
@@ -614,6 +624,14 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
         onClose={() => setScenarioOpen(false)}
         onHighlightSource={evidenziaFonte}
       />
+
+      {toast && (
+        <Toast
+          key={toast}
+          messaggio={toast}
+          onChiuso={() => setToast(null)}
+        />
+      )}
     </div>
   )
 }

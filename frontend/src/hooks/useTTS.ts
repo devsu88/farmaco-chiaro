@@ -33,7 +33,9 @@ function attesa(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export function useTTS() {
+// `onPronto` scatta una volta per `speak`, quando la riproduzione parte
+// davvero: è il segnale che l'audio è pronto (l'errore non lo produce).
+export function useTTS(onPronto?: () => void) {
   const [speaking, setSpeaking] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +69,11 @@ export function useTTS() {
   }, [stop])
 
   const riproduciChunk = useCallback(
-    async (testo: string, runId: number): Promise<void> => {
+    async (
+      testo: string,
+      runId: number,
+      onProntoChunk?: () => void
+    ): Promise<void> => {
       const res = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -103,6 +109,7 @@ export function useTTS() {
           .then(() => {
             setSpeaking(true)
             setLoading(false)
+            onProntoChunk?.()
           })
           .catch(() => {
             setError("Il browser ha bloccato la riproduzione audio.")
@@ -131,9 +138,20 @@ export function useTTS() {
       try {
         const chunks = dividiInChunk(text)
 
+        // Il primo chunk che parte avvisa una sola volta, anche quando il
+        // testo è spezzato in più richieste.
+        let notificato = false
+        const onProntoChunk = onPronto
+          ? () => {
+              if (notificato) return
+              notificato = true
+              onPronto()
+            }
+          : undefined
+
         for (const chunk of chunks) {
           if (runId !== runIdRef.current) return
-          await riproduciChunk(chunk, runId)
+          await riproduciChunk(chunk, runId, onProntoChunk)
           if (runId !== runIdRef.current) return
           await attesa(120)
         }
@@ -151,7 +169,7 @@ export function useTTS() {
         }
       }
     },
-    [riproduciChunk, stop]
+    [riproduciChunk, stop, onPronto]
   )
 
   return { speak, stop, speaking, loading, error }
