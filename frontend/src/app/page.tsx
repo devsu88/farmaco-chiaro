@@ -93,10 +93,9 @@ export default function Home() {
 
       <main className="mx-auto max-w-2xl px-4 py-6">
         <div className="border-l-2 border-blue-600 pl-3">
-          <h1 className="text-lg font-semibold text-slate-900">Farmaco Chiaro</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-lg font-semibold text-slate-900">
             Il foglio illustrativo, spiegato in modo facile da leggere
-          </p>
+          </h1>
         </div>
 
         <div className="mt-5">
