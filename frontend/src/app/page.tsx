@@ -11,7 +11,7 @@ import {
   IconaX,
 } from "@/components/Icone"
 import { api } from "@/lib/api"
-import { FARMACI_COMUNI } from "@/lib/farmaci-comuni"
+import { FARMACI_COMUNI, TOTALE_FARMACI } from "@/lib/farmaci-comuni"
 import {
   aggiungiRicercaRecente,
   cancellaRicercheRecenti,
@@ -103,6 +103,23 @@ export default function Home() {
             onSelect={apriFarmaco}
             placeholder="Cerca farmaco, principio attivo o sintomo…"
           />
+        </div>
+
+        <div className="mx-auto mt-3 max-w-md">
+          <div className="flex items-center gap-2 border border-gray-200 border-l-[3px] border-l-blue-600 bg-gray-50 p-3">
+            <IconaBookOpen size={15} className="shrink-0 text-blue-600" />
+            <p className="text-sm text-gray-700">
+              <strong className="font-semibold text-gray-900">
+                {TOTALE_FARMACI} farmaci
+              </strong>{" "}
+              già spiegati in modo semplice, con le fonti AIFA verificate.
+            </p>
+          </div>
+          <p className="mt-2 flex items-center gap-1 text-[10px] text-gray-400">
+            <IconaInfo size={11} className="shrink-0" />
+            Il catalogo è in aggiornamento: nuovi farmaci vengono aggiunti man
+            mano.
+          </p>
         </div>
 
         <p className="mt-6 text-[10px] font-semibold uppercase tracking-wider text-slate-500">

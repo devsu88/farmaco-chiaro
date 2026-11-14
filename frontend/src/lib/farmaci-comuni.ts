@@ -13,3 +13,8 @@ export const FARMACI_COMUNI: FarmacoComune[] = [
   { id: "004763_01", nome: "Aspirina" },
   { id: "034764_02", nome: "Subitene" },
 ]
+
+// Numero di farmaci unici nel catalogo (drug_id distinti in
+// backend/data/rag/sections.jsonl alla build 2026-11-14). Si aggiorna
+// manualmente insieme ai dati del catalogo.
+export const TOTALE_FARMACI = 454
