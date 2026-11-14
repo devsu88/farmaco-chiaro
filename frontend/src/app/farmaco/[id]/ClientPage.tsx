@@ -20,6 +20,7 @@ import { EasyText } from "@/components/EasyText"
 import { ChatPanel } from "@/components/ChatPanel"
 import { ScenarioWizard } from "@/components/ScenarioWizard"
 import { PiuMenu } from "@/components/PiuMenu"
+import { Skeleton } from "@/components/Skeleton"
 import {
   IconaArrowLeft,
   IconaBookOpen,
@@ -245,14 +246,28 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4" />
-        <h2 className="text-lg font-medium text-gray-700">
-          Caricamento in corso...
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Sto caricando il foglio illustrativo di {farmacoId}
-        </p>
+      <div
+        aria-busy="true"
+        className="min-h-screen bg-[#fbfcfe] px-4 py-6"
+      >
+        <p className="sr-only">Sto caricando il foglio illustrativo…</p>
+        <div
+          aria-hidden="true"
+          className="mx-auto max-w-3xl rounded-md border border-gray-200 bg-white p-5"
+        >
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-2.5 w-2.5 rounded-full" />
+            <Skeleton className="h-2 w-[120px]" />
+          </div>
+          <Skeleton className="mt-3 h-3.5 w-3/5" />
+          <Skeleton className="mt-3 h-2.5 w-[90%]" />
+          <Skeleton className="mt-2 h-2.5 w-[84%]" />
+          <Skeleton className="mt-2 h-2.5 w-[55%]" />
+          <div className="mt-4 flex gap-2">
+            <Skeleton className="h-[34px] w-[90px] rounded-md" />
+            <Skeleton className="h-[34px] w-[60px] rounded-md" />
+          </div>
+        </div>
       </div>
     )
   }
