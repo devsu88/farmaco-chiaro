@@ -140,7 +140,7 @@ export function PiuMenu({
             className={stileVoce}
           >
             <IconaMessage size={14} className="shrink-0 text-gray-400" />
-            {chatAperta ? "Nascondi chatbot" : "Chiedi al chatbot"}
+            {chatAperta ? "Chat aperta" : "Chiedi al chatbot"}
           </button>
 
           <button
