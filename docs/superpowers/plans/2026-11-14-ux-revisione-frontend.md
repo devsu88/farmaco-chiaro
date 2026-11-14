@@ -171,6 +171,35 @@ Gli input che la spec implica ma che i passi "felici" dei task non esercitano, c
   git commit -m "feat(ui): searchbar con empty state e stato di errore espliciti"
   ```
 
+### Task 2C: Contatore farmaci disponibili in home (ruling utente 2026-11-14)
+
+**Files:**
+- Modify: `frontend/src/lib/farmaci-comuni.ts` (una costante)
+- Modify: `frontend/src/app/page.tsx` (fascia sotto la SearchBar)
+
+**Interfaces:**
+- Consumes: layout home di Task 2R (stile C), SearchBar invariata.
+- Produces: `export const TOTALE_FARMACI = 454` in `farmaci-comuni.ts` (con commento che documenta la derivazione dal dataset e l'aggiornamento manuale insieme ai dati).
+
+- [ ] **Step 1: Costante `TOTALE_FARMACI = 454` in `farmaci-comuni.ts`**
+
+  Commento in italiano: «Numero di farmaci unici nel catalogo (drug_id distinti in backend/data/rag/sections.jsonl alla build 2026-11-14). Si aggiorna manualmente insieme ai dati del catalogo.»
+
+- [ ] **Step 2: Fascia nella home, sotto la SearchBar (opzione A del mockup convalidato)**
+
+  Mockup: `docs/superpowers/specs/2026-11-14-ux-mockups/` (contatore-farmaci.html, opzione A; iframe del companion: `contatore-farmaci.html`). Struttura:
+  - Fascia: `bg-gray-50 border border-gray-200 border-l-[3px] border-l-blue-600` padding `p-3`, `max-w-md` come la SearchBar, centrata.
+  - Contenuto: `IconaBookOpen` 15px blu-600 + frase: «**454 farmaci** già spiegati in modo semplice, con le fonti AIFA verificate.» — `text-sm text-gray-700`, numero in `font-semibold text-gray-900`. Uso `TOTALE_FARMACI` nel JSX, non il numero hardcoded.
+  - Nota sotto la fascia: `IconaInfo` 11px + «Il catalogo è in aggiornamento: nuovi farmaci vengono aggiunti man mano.» — `text-[10px] text-gray-400`.
+  - Nessuna aria-live necessaria (contenuto statico renderizzato server-side, nessun idratazione issue).
+
+- [ ] **Step 3: Verifica lint + build** (`cd frontend && npm run lint && npm run build`), puliti.
+- [ ] **Step 4: Commit**
+  ```bash
+  git add frontend/src/lib/farmaci-comuni.ts frontend/src/app/page.tsx
+  git commit -m "feat(ui): contatore del catalogo farmaci in home con nota di aggiornamento"
+  ```
+
 ### Task 4: PiuMenu — menu secondari della pagina farmaco
 
 **Files:**

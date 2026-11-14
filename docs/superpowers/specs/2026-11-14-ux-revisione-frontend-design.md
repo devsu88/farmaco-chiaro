@@ -156,6 +156,14 @@ richiedono decisione dell'utente):
 
 ## Stile visivo — "editoriale clinico" (ruling approvata dall'utente il 2026-11-14)
 
+Aggiornamento (contatore, 2026-11-14): la home espone sotto la SearchBar una
+fascia con il numero di farmaci disponibili (`TOTALE_FARMACI = 454`, costante
+in `farmaci-comuni.ts` derivata dal dataset: 454 drug_id unici; il numero si
+aggiorna manualmente insieme ai dati) e la nota «Il catalogo è in
+aggiornamento: nuovi farmaci vengono aggiunti man mano.» — opzione A del
+mockup `contatore-farmaci.html` convalidata dall'utente (fascia visibile sotto
+la ricerca, non nel footer).
+
 Dopo la validazione dei mockup l'utente ha chiesto un aspetto più
 professionale e istituzionale e ha scelto lo stile C su tre proposte
 (A portale navy, B teal moderno, C editoriale clinico), rifiutando le emoji
