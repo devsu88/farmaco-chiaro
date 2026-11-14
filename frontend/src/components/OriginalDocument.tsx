@@ -66,10 +66,10 @@ export function OriginalDocument({
               const attivo = blocco.blocco_id === bloccoAttivo
               return (
                 <div
-                  key={blocco.blocco_id}
+                  key={attivo ? `${blocco.blocco_id}-${focusNonce}` : blocco.blocco_id}
                   id={`blocco-${blocco.blocco_id}`}
                   className={`mb-3 whitespace-pre-line rounded px-1 ${
-                    attivo ? "bg-yellow-50 ring-1 ring-yellow-200" : ""
+                    attivo ? "fc-flash bg-yellow-50 ring-1 ring-yellow-200" : ""
                   }`}
                 >
                   {attivo && fonte ? (

@@ -25,3 +25,13 @@
     @apply list-disc pl-5 mb-3 space-y-1;
   }
 }
+
+@keyframes fc-flash {
+  from { background-color: rgba(254, 240, 138, 0.9); }
+  to   { background-color: transparent; }
+}
+.fc-flash { animation: fc-flash 1.5s ease-out 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-flash { animation: none; }
+}
