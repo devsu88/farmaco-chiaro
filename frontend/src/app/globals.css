@@ -34,4 +34,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fc-flash { animation: none; }
+  .animate-pulse { animation: none; }
 }

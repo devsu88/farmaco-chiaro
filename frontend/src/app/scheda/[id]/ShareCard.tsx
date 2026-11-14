@@ -16,7 +16,7 @@ function Sezione({
 }) {
   return (
     <section className="border border-gray-200 rounded-xl p-4">
-      <h2 className="text-sm font-semibold text-blue-900 uppercase tracking-wide mb-2">
+      <h2 className="text-sm font-semibold text-green-800 uppercase tracking-wide mb-2">
         <span aria-hidden="true" className="mr-2">
           {icona}
         </span>
@@ -151,8 +151,8 @@ export function ShareCard({ farmacoId }: { farmacoId: string }) {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-4">
-        <div className="bg-white border border-gray-200 rounded-2xl p-6">
-          <h1 className="text-3xl font-bold text-gray-900">{scheda.nome}</h1>
+        <div className="bg-white border border-green-200 rounded-2xl p-6">
+          <h1 className="text-3xl font-bold text-green-900">{scheda.nome}</h1>
           <p className="text-sm text-gray-600 mt-1">
             Principio attivo: {scheda.principio_attivo}
           </p>

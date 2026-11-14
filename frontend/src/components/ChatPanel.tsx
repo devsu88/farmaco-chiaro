@@ -87,9 +87,9 @@ export function ChatPanel({
       aria-label="Chatbot farmaco"
       className="bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col h-[65vh] lg:h-[calc(100vh-9rem)] lg:sticky lg:top-24"
     >
-      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="border-t-2 border-t-blue-600 p-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h2 className="font-semibold text-gray-900">Chatbot Farmaco</h2>
+          <h2 className="font-semibold text-blue-900">Chatbot Farmaco</h2>
           <p className="text-xs text-gray-500 mt-0.5">
             Risponde citando il foglio illustrativo
           </p>
