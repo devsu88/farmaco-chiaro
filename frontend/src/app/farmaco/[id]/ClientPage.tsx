@@ -105,7 +105,9 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   )
 
   const semplifica = useCallback(
-    async (forza = false, mantieniFonte = false) => {
+    // `notifica` distingue la generazione chiesta dall'utente dal caricamento
+    // automatico di una versione già generata: il secondo è silenzioso.
+    async (forza = false, mantieniFonte = false, notifica = true) => {
       if (semplificandoRef.current) return
       const idChiamata = farmacoId
       semplificandoRef.current = true
@@ -128,11 +130,13 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
         // n'è già una attiva.
         if (!mantieniFonte && !fonteEvidenziataRef.current) impostaFonte(null)
         registraVersioneGenerata(farmacoId)
-        setToast(
-          versione.cached
-            ? "Versione già disponibile"
-            : "Versione facile generata"
-        )
+        if (notifica) {
+          setToast(
+            versione.cached
+              ? "Versione già disponibile"
+              : "Versione facile generata"
+          )
+        }
       } catch (err) {
         if (farmacoIdRef.current !== idChiamata) return
         setSimplifyError(
@@ -158,6 +162,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
       setVersioneFacile(null)
       setVista("semplice")
       impostaFonte(null)
+      setToast(null)
 
       const [farmacoRes, documentoRes] = await Promise.allSettled([
         api.getFarmaco(farmacoId),
@@ -231,8 +236,9 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
       // Solo se l'utente ha già generato la versione facile per questo farmaco
       // la ricarichiamo da sola (di norma è in cache sul backend). Con lo
       // storage non disponibile o il farmaco mai generato resta il CTA.
+      // Il ricaricamento è atteso e silenzioso: nessun toast.
       if (versioneGiaGenerata(farmacoId)) {
-        void semplifica(false, true)
+        void semplifica(false, true, false)
       }
     }
 
