@@ -105,7 +105,7 @@ export default function Home() {
           />
         </div>
 
-        <div className="mx-auto mt-3 max-w-md">
+        <div className="mx-auto mt-3">
           <div className="flex items-center gap-2 border border-gray-200 border-l-[3px] border-l-blue-600 bg-gray-50 p-3">
             <IconaBookOpen size={15} className="shrink-0 text-blue-600" />
             <p className="text-sm text-gray-700">
