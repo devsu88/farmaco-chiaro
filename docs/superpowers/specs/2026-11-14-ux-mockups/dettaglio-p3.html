@@ -1,0 +1,66 @@
+<h2>Mockup dettagliato — Proposta 3 · Micro-feedback e identità</h2>
+<p class="subtitle">Non cambia i flussi: aggiunge feedback visivi e una palette coerente. Clicca sulla parte che ti convince di più, o scrivi in terminale.</p>
+
+<div class="split">
+  <div class="mockup" data-choice="p3-skeleton" onclick="toggleSelect(this)">
+    <div class="mockup-header">A · Caricamento con skeleton (oggi: spinner)</div>
+    <div class="mockup-body" style="padding:0;">
+      <div style="background:#f8fafc;padding:16px;">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:#e2e8f0;"></div>
+            <div style="width:120px;height:9px;border-radius:4px;background:#e2e8f0;"></div>
+          </div>
+          <div style="width:60%;height:14px;border-radius:6px;background:#e2e8f0;margin-top:12px;"></div>
+          <div style="width:90%;height:9px;border-radius:4px;background:#e2e8f0;margin-top:10px;"></div>
+          <div style="width:84%;height:9px;border-radius:4px;background:#e2e8f0;margin-top:7px;"></div>
+          <div style="width:55%;height:9px;border-radius:4px;background:#e2e8f0;margin-top:7px;"></div>
+          <div style="display:flex;gap:8px;margin-top:16px;">
+            <div style="width:90px;height:34px;border-radius:8px;background:#e2e8f0;"></div>
+            <div style="width:60px;height:34px;border-radius:8px;background:#e2e8f0;"></div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#64748b;margin-top:8px;text-align:center;">La struttura appare subito, i testi riempiono quando arrivano — percepisce 2× più veloce</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" data-choice="p3-fonte" onclick="toggleSelect(this)">
+    <div class="mockup-header">B · Fonte citata dalla chat → flash animato nel foglio</div>
+    <div class="mockup-body" style="padding:0;">
+      <div style="background:#f8fafc;padding:16px;">
+        <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:10px 12px;font-size:12px;color:#1e3a8a;">
+          💬 <b>Chat:</b> «Quante compresse posso prendere al giorno?»<br>
+          <span style="font-size:11px;">Massimo 3 compresse al giorno… <span style="text-decoration:underline;">vedi la fonte nel foglio →</span></span>
+        </div>
+        <div style="background:#fff;border:1px solid #fde047;border-radius:10px;padding:10px 12px;margin-top:12px;box-shadow:0 0 0 4px rgba(250,204,21,.35), 0 0 18px rgba(250,204,21,.45);">
+          <div style="font-size:10px;font-weight:600;color:#854d0e;">FOGLIO ORIGINALE · Posologia, par. 3</div>
+          <div style="font-size:12px;color:#1e293b;margin-top:4px;">…non superare <mark style="background:#fef08a;border-radius:3px;padding:0 3px;">3 compresse al giorno</mark>…</div>
+        </div>
+        <div style="font-size:10px;color:#64748b;margin-top:8px;text-align:center;">Il blocco citato lampeggia (giallo, ~1,5 s) e scorre in vista: capisce <i>da dove</i> nasce la risposta</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:14px;">
+  <h3>Palette condivisa su tutta l'app</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:150px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;"></span>
+      <b style="font-size:12px;color:#166534;"> Verde = versione facile</b>
+      <div style="font-size:10px;color:#4b5563;margin-top:3px;">La parte da leggere e capire — sempre la stessa pagina verde</div>
+    </div>
+    <div style="flex:1;min-width:150px;background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:10px 12px;">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;"></span>
+      <b style="font-size:12px;color:#1d4ed8;"> Blu = approfondire</b>
+      <div style="font-size:10px;color:#4b5563;margin-top:3px;">Chat, Guidami, "una frase" — azioni che esplorano il dettaglio</div>
+    </div>
+    <div style="flex:1;min-width:150px;background:#fefce8;border:1px solid #fde047;border-radius:10px;padding:10px 12px;">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#eab308;"></span>
+      <b style="font-size:12px;color:#854d0e;"> Ambra = situazioni reali</b>
+      <div style="font-size:10px;color:#4b5563;margin-top:3px;">"Cosa faccio se…?", fonti evidenziate, avvisi dolci</div>
+    </div>
+  </div>
+  <p class="subtitle" style="margin-top:10px;">Questa logica c'è già a metà nel codice (verde su EasyText, ambra su ScenarioWizard): la sistematizziamo e la estendiamo a home, scheda condivisa e chat.</p>
+</div>
