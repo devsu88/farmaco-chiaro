@@ -1,169 +1,173 @@
 # Farmaco Chiaro
 
-**Farmaco Chiaro** rende leggibili i fogli illustrativi AIFA. Il documento originale
-resta sempre visibile; accanto, l'utente può leggere una versione in linguaggio
-semplice e fare domande a un chatbot che cita il paragrafo da cui proviene la
-risposta.
+Makes Italian medicine leaflets (AIFA *fogli illustrativi*) readable: the official document stays
+in view, next to a plain-language version and a chatbot that cites the exact paragraph each answer
+comes from.
 
-L'applicazione non formula diagnosi e non sostituisce il medico o il farmacista.
-Aiuta a capire un testo lungo e a preparare le domande da porre a un professionista.
+The app does not give diagnoses and does not replace a doctor or pharmacist. It helps people
+understand a long text and prepare the questions to ask a professional.
 
-## Demo
+[![Home page](docs/img/home.png)](https://farmaco-chiaro.vercel.app)
 
-Prova l'app online: **https://farmaco-chiaro.vercel.app**
+**[Live demo](https://farmaco-chiaro.vercel.app)** · [How it works](#how-it-works) · [Quick start](#quick-start) · [Limitations](#limitations)
 
-[![Home di Farmaco Chiaro](docs/img/home.png)](https://farmaco-chiaro.vercel.app)
+> The interface is in Italian: the leaflets and their readers are Italian.
 
-La home offre la ricerca per nome, principio attivo o sintomo, i farmaci più
-consultati e un contatore del catalogo (in aggiornamento continuo).
+## What it does
 
-La pagina del farmaco mostra la **versione facile** (auto-caricata se già
-generata) accanto al foglio originale, sempre consultabile con il toggle
-*Semplice / Originale*:
+[![Drug page with the plain-language version](docs/img/farmaco.png)](https://farmaco-chiaro.vercel.app)
 
-[![Pagina farmaco con versione facile](docs/img/farmaco.png)](https://farmaco-chiaro.vercel.app)
+- **Plain / Original toggle**: the easy version is front and centre, the full original leaflet is
+  one click away.
+- **Plain-language version**: one-sentence summary, key points, glossary of difficult terms and
+  questions to ask the pharmacist. The first generation is an explicit click; later visits load it
+  from cache.
+- **Citable original**: the leaflet is split into blocks. Every citation scrolls to the paragraph
+  and highlights it.
+- **Chat with verifiable sources**: each answer lists the blocks it used and jumps to them.
+- **Guided path, "one thing at a time"**: four simple screens retrieved with semantic search and
+  cited from the leaflet, with audio and a high-contrast mode.
+- **"What do I do if…?"**: short, cited answers for a missed dose, a double dose, an adverse
+  reaction and alcohol.
+- **Shareable card** with QR code and WhatsApp link, for relatives and caregivers.
+- **Text-to-speech** of the plain-language version.
+- **Search by name, active ingredient or symptom** (keyword + semantic).
+- **Accessibility**: loading skeletons, confirmation toasts, focus management in chat and menu,
+  `prefers-reduced-motion` respected.
 
-## Funzionalità
+## How it works
 
-- **Home come porta d'ingresso**: ricerca con risposte esplicite anche quando
-  non trova nulla, farmaci più consultati, ricerche recenti (solo sul
-  dispositivo) e contatore del catalogo.
-- **Vista Semplice / Originale** con un toggle: la versione facile è al centro,
-  il foglio originale integrale resta a un click.
-- **Versione semplificata**: frase di sintesi, punti chiave, glossario dei
-  termini difficili e domande da fare al farmacista. La prima generazione è
-  sempre un click esplicito; le visite successive la caricano da cache.
-- **Documento originale integrale**, suddiviso in blocchi citabili: ogni
-  citazione evidenzia il paragrafo nel foglio con un flash animato.
-- **Chat con fonti verificabili**: ogni risposta riporta i blocchi usati e
-  porta la vista al paragrafo corrispondente.
-- **Percorso guidato "Una cosa alla volta"**: quattro schermate semplici,
-  recuperate con ricerca semantica e citate dal foglio, con audio e modalità
-  alto contrasto.
-- **"Cosa faccio se…?"**: risposte brevi e citate per dimenticanza, dose doppia,
-  reazione avversa e alcol.
-- **Scheda condivisibile con QR e WhatsApp** per familiari e caregiver.
-- **Sintesi vocale** della versione semplificata.
-- **Ricerca per nome, principio attivo o sintomo** (keyword + semantica).
-- **Accessibilità**: skeleton al caricamento, toast di conferma, gestione del
-  focus in chat e menu, rispetto di `prefers-reduced-motion`.
+```text
+AIFA PDFs ─▶ Markdown ─▶ chunks + citable blocks ─▶ embeddings ─▶ Qdrant
+                                                                   │
+question ─▶ BM25 + vector search ─▶ Reciprocal Rank Fusion ─▶ top passages ─▶ LLM ─▶ cited answer
+```
 
-## Come funziona
+1. Leaflet PDFs are converted to Markdown and split into chunks and citable blocks
+   (`backend/data/rag/`).
+2. The `aifa_rag` pipeline embeds the chunks and loads them into Qdrant (Cloud or a local server),
+   with a resumable on-disk cache.
+3. Search combines BM25 and vector search, merges the results with Reciprocal Rank Fusion and keeps
+   the most relevant passages.
+4. An LLM on OpenRouter writes the answer and the plain-language version from the retrieved passages
+   only.
+5. If Qdrant or the embeddings are unavailable, retrieval falls back to BM25 and the app keeps working.
 
-1. I PDF dei fogli AIFA vengono convertiti in Markdown e suddivisi in chunk e
-   blocchi citabili (`backend/data/rag/`).
-2. La pipeline `aifa_rag` calcola gli embedding dei chunk e li carica su Qdrant
-   (Cloud o server locale), con cache su disco riprendibile.
-3. La ricerca combina BM25 e ricerca vettoriale, fonde i risultati con Reciprocal
-   Rank Fusion e seleziona i passaggi più pertinenti.
-4. Un LLM su OpenRouter genera la risposta e la versione semplificata a partire dai
-   passaggi recuperati.
-5. Guida, chat e scenari usano la ricerca semantica su Qdrant; la home combina
-   parole chiave e semantica. Se Qdrant o gli embedding non sono disponibili,
-   il retrieval prosegue in BM25 e l'app resta operativa.
-
-## Architettura
-
-| Componente | Tecnologia | Ruolo |
+| Component | Technology | Role |
 |---|---|---|
-| Frontend | Next.js 16, React 19, Tailwind CSS | Interfaccia utente e proxy same-origin verso il backend |
-| Backend | FastAPI, LangGraph | API REST e orchestrazione della chat |
-| Retrieval | Qdrant, BM25, RRF | Semantica per guida/chat/scenari, keyword + semantica in home |
-| LLM e servizi AI | OpenRouter | Chat, semplificazione, embeddings e sintesi vocale |
-| Dati | JSON AIFA | Registro, chunk e blocchi citabili di 621 fogli illustrativi |
+| Frontend | Next.js 16, React 19, Tailwind CSS | UI and same-origin proxy to the backend |
+| Backend | FastAPI, LangGraph | REST API and chat orchestration |
+| Retrieval | Qdrant, BM25, RRF | Semantic search for guide/chat/scenarios; keyword + semantic on the home page |
+| LLM and AI services | OpenRouter | Chat, simplification, embeddings, text-to-speech |
+| Data | AIFA JSON | Registry, chunks and citable blocks for 621 leaflets |
 
 ```text
 .
 ├── backend/
-│   ├── app/            # FastAPI: route, schemi, configurazione
-│   ├── aifa_rag/       # pipeline dataset, embedding e indice Qdrant
-│   ├── graph/          # grafo LangGraph della chat
-│   ├── services/       # retrieval, semplificazione, citazioni, TTS
-│   ├── eval/           # domande di valutazione del retrieval
-│   └── data/rag/       # chunk, sezioni, blocchi e registro (runtime)
+│   ├── app/            # FastAPI: routes, schemas, configuration
+│   ├── aifa_rag/       # dataset, embedding and Qdrant index pipeline
+│   ├── graph/          # LangGraph chat graph
+│   ├── services/       # retrieval, simplification, citations, TTS
+│   ├── eval/           # retrieval evaluation questions
+│   └── data/rag/       # chunks, sections, blocks and registry (runtime snapshot)
 ├── frontend/           # Next.js App Router
-├── docs/               # screenshot della demo
-├── docker-compose.yml  # frontend + backend + Qdrant locale
-└── vercel.json         # deploy su Vercel Services, redirect e cron
+├── docs/               # demo screenshots, design notes
+├── docker-compose.yml  # frontend + backend + local Qdrant
+└── vercel.json         # Vercel Services deploy, redirects and cron
 ```
 
-## Requisiti
+## Key decisions
 
-- Python 3.13 e [uv](https://docs.astral.sh/uv/)
-- Node.js 20 o superiore
-- API key [OpenRouter](https://openrouter.ai/)
+- **Every answer is grounded in citable blocks.** Answers are generated from the retrieved passages,
+  and the UI links each one back to the paragraph in the original leaflet, so a reader can always
+  check the source.
+- **Hybrid retrieval with a safe fallback.** BM25 catches exact drug names and doses; vectors catch
+  paraphrases and symptoms. If the vector store is down, BM25 alone keeps the app usable.
+- **The runtime data is a committed snapshot.** `backend/data/rag/` holds the generated chunks,
+  sections and registry that the backend container ships with, so a deploy needs no ingestion step.
+  `make dataset` and `make index` regenerate it from the Markdown files.
+- **Retrieval is evaluated, not assumed.** `make eval` scores dense retrieval on
+  `backend/eval/qa.jsonl`, and `backend/tests/data/golden_set.json` guards the retrieval tests.
 
-## Avvio rapido
+## Quick start
+
+Requirements: Python 3.13 with [uv](https://docs.astral.sh/uv/), Node.js 20+ and an
+[OpenRouter](https://openrouter.ai/) API key.
 
 ```bash
 # Backend
 cd backend
-cp .env.example .env        # inserire OPENROUTER_API_KEY
+cp .env.example .env        # set OPENROUTER_API_KEY
 uv sync
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
 
-# Frontend (in un altro terminale)
+# Frontend (in another terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-Aprire `http://localhost:3000`. Il frontend inoltra le chiamate a `/api/*` verso il
-backend, quindi il browser resta sullo stesso origin.
+Open `http://localhost:3000`. The frontend forwards `/api/*` to the backend, so the browser stays on
+one origin.
 
 ### Docker Compose
 
 ```bash
-cp backend/.env.example backend/.env   # inserire OPENROUTER_API_KEY
+cp backend/.env.example backend/.env   # set OPENROUTER_API_KEY
 docker compose up -d qdrant
-# Indicizza sul Qdrant locale (una volta sola, o dopo aver rigenerato il dataset)
+# Index into the local Qdrant (once, or after regenerating the dataset)
 cd backend && QDRANT_URL=http://localhost:6333 uv run python -m aifa_rag.cli index
 cd .. && docker compose up --build
 ```
 
-## Comandi
+### Commands
 
-| Comando | Descrizione |
+| Command | Description |
 |---|---|
-| `make dev` | Avvia backend e frontend in parallelo |
-| `make dataset` | Rigenera chunk, sezioni, blocchi e registro dai Markdown |
-| `make index` | Calcola gli embedding e carica l'indice su Qdrant |
-| `make eval` | Valuta il retrieval denso su `backend/eval/qa.jsonl` |
-| `make test` | Test backend e lint frontend |
-| `make lint` | Ruff sul backend ed ESLint sul frontend |
-| `make build` | Build di produzione del frontend |
-| `make up` / `make down` | Avvia o ferma Docker Compose |
+| `make dev` | Run backend and frontend together |
+| `make dataset` | Regenerate chunks, sections, blocks and registry from the Markdown files |
+| `make index` | Compute embeddings and load the index into Qdrant |
+| `make eval` | Evaluate dense retrieval on `backend/eval/qa.jsonl` |
+| `make test` | Backend tests and frontend lint |
+| `make lint` | Ruff on the backend, ESLint on the frontend |
+| `make build` | Production build of the frontend |
+| `make up` / `make down` | Start or stop Docker Compose |
 
-Dopo aver rigenerato il dataset servono `make index` e il riavvio del backend.
-`make index` usa `QDRANT_URL` e `QDRANT_API_KEY` da `backend/.env`.
+After regenerating the dataset, run `make index` and restart the backend. `make index` reads
+`QDRANT_URL` and `QDRANT_API_KEY` from `backend/.env`.
 
-## Test
+## Tests
 
 ```bash
 make test
 ```
 
-I test del backend usano `pytest`; il frontend viene verificato con ESLint.
+Backend tests run with `pytest` (retrieval, citations, chat graph, API, scenarios, text-to-speech);
+the frontend is checked with ESLint and a production build. CI runs both on every push.
 
 ## Deploy
 
-Il deploy di produzione usa **Vercel Services** con due servizi:
+Production runs on **Vercel Services** with two services:
 
-- `frontend`: applicazione Next.js.
-- `backend`: container FastAPI, raggiungibile dal frontend tramite il binding
-  privato `BACKEND_URL`.
+- `frontend`: the Next.js app.
+- `backend`: the FastAPI container, reached from the frontend through the private `BACKEND_URL` binding.
 
-La configurazione è in `vercel.json`. Il container backend include gli artefatti
-runtime in `backend/data/rag/`; i vettori vivono su Qdrant Cloud.
-
-Impostare su Vercel le variabili `QDRANT_URL` e `QDRANT_API_KEY` per gli ambienti
-Production e Preview. L'indice va caricato una volta da locale:
+The configuration is in `vercel.json`. The backend container ships the runtime artifacts in
+`backend/data/rag/`; the vectors live on Qdrant Cloud. Set `QDRANT_URL` and `QDRANT_API_KEY` for
+Production and Preview, then load the index once from your machine:
 
 ```bash
 cd backend
 uv run python -m aifa_rag.cli index
 ```
 
-Il cron giornaliero `/api/rag/keepalive` evita la sospensione del free tier Qdrant.
-Lo stato è visibile su `/api/rag/status`. Se Qdrant non è raggiungibile, il
-retrieval continua a funzionare in BM25.
+A daily cron on `/api/rag/keepalive` stops the Qdrant free tier from being suspended. Status is
+visible at `/api/rag/status`. If Qdrant is unreachable, retrieval keeps working with BM25.
+
+## Limitations
+
+- The simplified text is LLM-generated from the leaflet. It can omit or soften details, which is why
+  the original stays one click away and every statement is cited.
+- Coverage is the 621 leaflets currently in the dataset; the catalogue is still growing.
+- Retrieval quality is measured on a small question set (30 questions in `backend/eval/qa.jsonl`), not a large benchmark.
+- The interface and the content are Italian only.
