@@ -86,8 +86,18 @@ question ─▶ BM25 + vector search ─▶ Reciprocal Rank Fusion ─▶ top pa
 - **The runtime data is a committed snapshot.** `backend/data/rag/` holds the generated chunks,
   sections and registry that the backend container ships with, so a deploy needs no ingestion step.
   `make dataset` and `make index` regenerate it from the Markdown files.
-- **Retrieval is evaluated, not assumed.** `make eval` scores dense retrieval on
-  `backend/eval/qa.jsonl`, and `backend/tests/data/golden_set.json` guards the retrieval tests.
+- **Retrieval is evaluated, not assumed.** `make eval` scores dense retrieval on the 30 questions in
+  `backend/eval/qa.jsonl` (a hit needs the right drug, the right section and the expected keywords):
+
+  | Metric (k = 5) | Result |
+  |---|---|
+  | recall@5 | 0.867 |
+  | MRR | 0.850 |
+
+  The right drug is retrieved for all 30 questions. The 4 misses all return the wrong section, and 3
+  of them are generic "what is X for?" questions, where dense search lands on sections such as
+  breastfeeding or marketing-authorisation holder instead of the indications. That points at
+  query rewriting or a section-aware boost as the next improvement.
 
 ## Quick start
 
