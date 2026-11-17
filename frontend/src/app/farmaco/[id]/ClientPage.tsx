@@ -310,7 +310,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
         <p className="sr-only">Sto caricando il foglio illustrativo…</p>
         <div
           aria-hidden="true"
-          className="mx-auto max-w-3xl rounded-md border border-gray-200 bg-white p-5"
+          className="mx-auto max-w-5xl rounded-md border border-gray-200 bg-white p-5"
         >
           <div className="flex items-center gap-2">
             <Skeleton className="h-2.5 w-2.5 rounded-full" />
@@ -373,7 +373,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
   return (
     <div className="min-h-screen bg-[#fbfcfe]">
       <header className="sticky top-0 z-20 border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-3xl px-4 py-3">
+        <div className="mx-auto max-w-5xl px-4 py-3">
           <div className="flex items-start gap-2">
             <button
               type="button"
@@ -477,7 +477,7 @@ export default function ClientPage({ farmacoId }: { farmacoId: string }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-6">
+      <main className="mx-auto max-w-5xl px-4 py-6">
         {!semplificando && simplifyError && (
           <div
             role="alert"

@@ -95,7 +95,7 @@ export function SearchBar({ onSelect, placeholder = "Cerca un farmaco..." }: Sea
   const listaAperta = isOpen && (haRisultati || mostraMessaggio)
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-2xl">
+    <div ref={containerRef} className="relative w-full max-w-4xl">
       <div className="relative">
         <input
           ref={inputRef}

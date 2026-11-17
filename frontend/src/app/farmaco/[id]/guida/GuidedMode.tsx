@@ -59,7 +59,7 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
         className="min-h-screen bg-[#fbfcfe] flex flex-col items-center justify-center p-8"
       >
         <Skeleton className="h-8 w-48 mb-6" />
-        <Skeleton className="h-72 w-full max-w-3xl" />
+        <Skeleton className="h-72 w-full max-w-5xl" />
         <p className="sr-only">Preparo il percorso guidato...</p>
       </div>
     )
@@ -134,7 +134,7 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
           contrasto ? "bg-black border-yellow-300" : "bg-white border-gray-200"
         }`}
       >
-        <div className="max-w-3xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <Link
               href={`/farmaco/${farmacoId}`}
@@ -179,7 +179,7 @@ export function GuidedMode({ farmacoId }: { farmacoId: string }) {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
+      <main className="max-w-5xl mx-auto px-4 py-8">
         <p
           className={`text-[10px] font-semibold uppercase tracking-wider mb-2 ${classiEtichettaTecnica}`}
         >

@@ -116,7 +116,7 @@ export function ShareCard({ farmacoId }: { farmacoId: string }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 print:hidden">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
           <Link
             href={`/farmaco/${farmacoId}`}
             className="text-sm underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
@@ -150,7 +150,7 @@ export function ShareCard({ farmacoId }: { farmacoId: string }) {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8 space-y-4">
+      <main className="max-w-5xl mx-auto px-4 py-8 space-y-4">
         <div className="bg-white border border-green-200 rounded-2xl p-6">
           <h1 className="text-3xl font-bold text-green-900">{scheda.nome}</h1>
           <p className="text-sm text-gray-600 mt-1">

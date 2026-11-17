@@ -81,7 +81,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#fbfcfe]">
       <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3">
           <p className="text-sm font-semibold tracking-wider text-slate-900">
             FARMACO<span className="text-blue-600">CHIARO</span>
           </p>
@@ -91,7 +91,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-6">
+      <main className="mx-auto max-w-4xl px-4 py-6">
         <div className="border-l-2 border-blue-600 pl-3">
           <h1 className="text-lg font-semibold text-slate-900">
             Il foglio illustrativo, spiegato in modo facile da leggere
@@ -191,7 +191,7 @@ export default function Home() {
         </ul>
       </main>
 
-      <footer className="mx-auto max-w-2xl px-4 pb-8">
+      <footer className="mx-auto max-w-4xl px-4 pb-8">
         <p className="text-xs text-slate-500">
           Fonte ufficiale: fogli illustrativi AIFA · Non sostituisce il parere
           del medico o del farmacista
