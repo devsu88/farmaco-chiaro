@@ -1,0 +1,72 @@
+name: AI-native evals
+
+# Regression tests for the configuration that steers the agent: prompts,
+# skills, agents, process artifacts and the retrieval golden set. They run
+# when that configuration changes and once a week, without credentials.
+
+on:
+  push:
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "REVIEW.md"
+      - "opencode.jsonc"
+      - ".opencode/**"
+      - "docs/ai-native/**"
+      - "backend/graph/**"
+      - "backend/services/**"
+      - "backend/app/llm.py"
+      - "backend/app/schemas.py"
+      - "backend/app/routes/**"
+      - "backend/eval/**"
+      - "backend/tests/test_safety_contract.py"
+      - "backend/tests/data/golden_set.json"
+      - "scripts/check_ai_native.py"
+      - ".github/workflows/ai-native.yml"
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "REVIEW.md"
+      - "opencode.jsonc"
+      - ".opencode/**"
+      - "docs/ai-native/**"
+      - "backend/graph/**"
+      - "backend/services/**"
+      - "backend/app/llm.py"
+      - "backend/app/schemas.py"
+      - "backend/app/routes/**"
+      - "backend/eval/**"
+      - "backend/tests/test_safety_contract.py"
+      - "backend/tests/data/golden_set.json"
+      - "scripts/check_ai_native.py"
+      - ".github/workflows/ai-native.yml"
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  process:
+    name: Process artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check AI-native artifacts
+        run: python3 scripts/check_ai_native.py
+
+  safety:
+    name: Safety contract and golden set
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Run contract tests
+        run: uv run pytest -q tests/test_safety_contract.py tests/test_golden_set.py

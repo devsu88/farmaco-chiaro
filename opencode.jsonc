@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Deterministic guardrails. The playbook asks for hooks where a policy must
+  // hold without exception; OpenCode's permission layer is the equivalent.
+  // Rules are evaluated in order and the last match wins.
+  "permissions": [
+    // Secrets never enter the model context.
+    { "action": "read", "resource": "*.env", "effect": "deny" },
+    { "action": "read", "resource": "*.env.*", "effect": "deny" },
+    { "action": "read", "resource": "*.env.example", "effect": "allow" },
+    { "action": "edit", "resource": "*.env", "effect": "deny" },
+    { "action": "edit", "resource": "*.env.*", "effect": "deny" },
+    { "action": "edit", "resource": "*.env.example", "effect": "allow" },
+
+    // Generated runtime artifacts are rebuilt with `make dataset`, not edited.
+    { "action": "edit", "resource": "backend/data/rag/chunks.jsonl", "effect": "deny" },
+    { "action": "edit", "resource": "backend/data/rag/sections.jsonl", "effect": "deny" },
+    { "action": "edit", "resource": "backend/data/rag/documento.jsonl", "effect": "deny" },
+    { "action": "edit", "resource": "backend/data/rag/farmaci.json", "effect": "deny" },
+    { "action": "edit", "resource": "backend/data/rag/index_meta.json", "effect": "deny" },
+    { "action": "edit", "resource": "backend/data/cache/*", "effect": "deny" },
+    { "action": "edit", "resource": "frontend/.next/*", "effect": "deny" },
+    { "action": "edit", "resource": "*node_modules*", "effect": "deny" },
+
+    // Tests, the eval set and curated safety copy are contracts: changing them
+    // needs a human decision, not a silent edit to make a check pass.
+    { "action": "edit", "resource": "backend/tests/*", "effect": "ask" },
+    { "action": "edit", "resource": "backend/eval/*", "effect": "ask" },
+    { "action": "edit", "resource": "backend/data/scenari.json", "effect": "ask" },
+
+    // Human gates. `ask` pauses; `deny` is reserved for destructive actions.
+    { "action": "shell", "resource": "git push *", "effect": "ask" },
+    { "action": "shell", "resource": "git push --force*", "effect": "deny" },
+    { "action": "shell", "resource": "git reset --hard*", "effect": "ask" },
+    { "action": "shell", "resource": "git clean *", "effect": "ask" },
+    { "action": "shell", "resource": "vercel --prod*", "effect": "ask" },
+    { "action": "shell", "resource": "vercel deploy --prod*", "effect": "ask" },
+    { "action": "shell", "resource": "vercel rollback*", "effect": "ask" },
+    { "action": "shell", "resource": "make index*", "effect": "ask" },
+    { "action": "shell", "resource": "uv run python -m aifa_rag.cli index*", "effect": "ask" },
+    { "action": "shell", "resource": "rm -rf *", "effect": "ask" },
+    { "action": "shell", "resource": "docker compose down -v*", "effect": "ask" }
+  ]
+}

@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend dataset index eval test lint build up down logs
+.PHONY: dev backend frontend dataset index eval test lint build check up down logs
 
 backend:
 	cd backend && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
@@ -25,6 +25,10 @@ test:
 lint:
 	cd backend && uv run ruff check .
 	cd frontend && npx eslint src
+
+check: test
+	cd frontend && npm run build
+	python3 scripts/check_ai_native.py
 
 build:
 	cd frontend && npm run build

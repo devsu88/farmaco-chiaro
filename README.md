@@ -72,7 +72,9 @@ question ─▶ BM25 + vector search ─▶ Reciprocal Rank Fusion ─▶ top pa
 │   └── data/rag/       # chunks, sections, blocks and registry (runtime snapshot)
 ├── frontend/           # Next.js App Router
 ├── docs/               # demo screenshots, design notes
+├── docs/ai-native/     # intent, spec, plan and audit for each change
 ├── docker-compose.yml  # frontend + backend + local Qdrant
+├── AGENTS.md           # operational guide for agents and maintainers
 └── vercel.json         # Vercel Services deploy, redirects and cron
 ```
 
@@ -139,6 +141,7 @@ cd .. && docker compose up --build
 | `make index` | Compute embeddings and load the index into Qdrant |
 | `make eval` | Evaluate dense retrieval on `backend/eval/qa.jsonl` |
 | `make test` | Backend tests and frontend lint |
+| `make check` | Tests, frontend lint + production build, process/artifact checks |
 | `make lint` | Ruff on the backend, ESLint on the frontend |
 | `make build` | Production build of the frontend |
 | `make up` / `make down` | Start or stop Docker Compose |
@@ -154,6 +157,23 @@ make test
 
 Backend tests run with `pytest` (retrieval, citations, chat graph, API, scenarios, text-to-speech);
 the frontend is checked with ESLint and a production build. CI runs both on every push.
+
+### Working with agents
+
+The repository carries its own process, not just code:
+
+- **[`AGENTS.md`](AGENTS.md)** — commands, architecture, source of truth, medical
+  invariants and gotchas. `CLAUDE.md` imports it for Claude Code.
+- **[`REVIEW.md`](REVIEW.md)** — the review passes and what counts as important.
+- **[`docs/ai-native/`](docs/ai-native/)** — the `intent → spec → plan` chain for
+  each non-trivial change, plus the audit of the current process.
+- **`.opencode/skills/`** — medical-content safety and the change workflow.
+- **`opencode.jsonc`** — deterministic guardrails on secrets, generated
+  artifacts, force-push and production deploys.
+
+`make check` runs the tests, a production build and the artifact check. The
+`AI-native evals` workflow re-runs the safety contract whenever prompts, skills
+or agent configuration change.
 
 ## Deploy
 

@@ -5,6 +5,14 @@ on:
   pull_request:
 
 jobs:
+  process:
+    name: Process artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check AI-native artifacts
+        run: python3 scripts/check_ai_native.py
+
   backend:
     runs-on: ubuntu-latest
     defaults:
