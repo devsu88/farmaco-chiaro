@@ -27,6 +27,7 @@ lint:
 	cd frontend && npx eslint src
 
 check: test
+	cd backend && uv run ruff check .
 	cd frontend && npm run build
 	python3 scripts/check_ai_native.py
 

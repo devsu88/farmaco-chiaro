@@ -22,7 +22,7 @@ a cosmetic bug.
 | `make test` | Backend pytest + frontend ESLint |
 | `make lint` | Ruff + ESLint |
 | `make build` | Next.js production build |
-| `make check` | `make test` + production build + process/artifact checks |
+| `make check` | `make test` + Ruff + production build + process/artifact checks |
 | `make dataset` | Regenerate `backend/data/rag/` from Markdown |
 | `make index` | Embed chunks and load them into Qdrant (needs credentials) |
 | `make eval` | Dense retrieval evaluation on `backend/eval/qa.jsonl` (needs Qdrant) |

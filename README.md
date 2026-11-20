@@ -141,7 +141,7 @@ cd .. && docker compose up --build
 | `make index` | Compute embeddings and load the index into Qdrant |
 | `make eval` | Evaluate dense retrieval on `backend/eval/qa.jsonl` |
 | `make test` | Backend tests and frontend lint |
-| `make check` | Tests, frontend lint + production build, process/artifact checks |
+| `make check` | Tests, lint (Ruff + ESLint), production build, process/artifact checks |
 | `make lint` | Ruff on the backend, ESLint on the frontend |
 | `make build` | Production build of the frontend |
 | `make up` / `make down` | Start or stop Docker Compose |
