@@ -14,7 +14,8 @@ automatizzare il deploy né introdurre un servizio obbligatorio.
 
 ### R1 — Identità della release
 
-`GET /health` restituisce, oltre a `status`:
+`GET /api/health` (proxy pubblico Next) e `GET /health` (backend interno)
+restituiscono, oltre a `status`:
 
 ```json
 {
@@ -34,8 +35,8 @@ Il contratto esistente (`status`) resta invariato.
 `https://farmaco-chiaro.vercel.app`), `--timeout` (default 15 s) e
 `--require-commit`. Verifica:
 
-1. `GET /health` → 200, `status == "healthy"`; se `--require-commit`, `commit`
-   non è `"unknown"`.
+1. `GET /api/health` (o `/health` con `--backend`) → 200, `status ==
+   "healthy"`; se `--require-commit`, `commit` non è `"unknown"`.
 2. `GET /api/rag/status` → 200, `farmaci > 0`; `qdrant.available` falso è un
    warning, non un errore (il fallback BM25 è voluto).
 3. `GET /api/farmaco/012745_01` → 200.

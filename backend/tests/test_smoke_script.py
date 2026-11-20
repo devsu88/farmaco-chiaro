@@ -19,7 +19,7 @@ def make_fetch(*, old_chat: bool = False, qdrant: bool = True, commit: str = "ab
     def fetch(method: str, url: str, payload: dict | None, timeout: float):
         path = urlparse(url).path
         headers = {"x-request-id": "req-1"}
-        if path == "/health":
+        if path in ("/health", "/api/health"):
             return 200, headers, json.dumps({"status": "healthy", "commit": commit}).encode()
         if path == "/api/rag/status":
             body = {

@@ -12,10 +12,10 @@ vercel --prod                   # deploy Production
 make smoke                      # verifica reale, senza chiamate LLM valide
 ```
 
-Confronta `GET /health` con il commit:
+Confronta `GET /api/health` con il commit:
 
 ```bash
-curl -sS https://farmaco-chiaro.vercel.app/health
+curl -sS https://farmaco-chiaro.vercel.app/api/health
 git rev-parse --short HEAD
 ```
 
@@ -33,7 +33,7 @@ python3 scripts/smoke.py --base-url https://farmaco-chiaro.vercel.app
 python3 scripts/smoke.py --require-commit
 ```
 
-Controlla: `/health`, `/api/rag/status`, `/api/farmaco/{id}`, la pagina
+Controlla: `/api/health`, `/api/rag/status`, `/api/farmaco/{id}`, la pagina
 farmaco, `X-Request-ID`, `422` su messaggio vuoto e su messaggio di 1.001
 caratteri. Non fa mai una chiamata valida all'LLM.
 

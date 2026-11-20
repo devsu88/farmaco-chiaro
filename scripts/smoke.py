@@ -66,9 +66,11 @@ def run_checks(
     def post(path: str, payload: dict):
         return fetch("POST", base + path, payload, timeout)
 
-    # 1. Release identity.
+    # 1. Release identity. Public path goes through the Next proxy; in
+    # --backend mode the container exposes /health directly.
+    health_path = "/health" if backend_only else "/api/health"
     try:
-        status, _, body = get("/health")
+        status, _, body = get(health_path)
         data = _json(body)
         commit = str(data.get("commit", "unknown"))
         unknown = commit == "unknown"
