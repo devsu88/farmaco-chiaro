@@ -133,7 +133,12 @@ async function fetchJSON<T>(input: RequestInfo | URL, init?: RequestInit): Promi
     let messaggio = `Errore API ${res.status}`
     try {
       const body = await res.json()
-      messaggio = body?.error?.message || body?.detail || messaggio
+      const detail = body?.error?.message ?? body?.detail
+      if (typeof detail === "string") {
+        messaggio = detail
+      } else if (Array.isArray(detail)) {
+        messaggio = "Dati non validi"
+      }
     } catch {
       // risposta non JSON: manteniamo il messaggio generico
     }

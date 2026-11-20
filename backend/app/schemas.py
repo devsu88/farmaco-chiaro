@@ -1,7 +1,14 @@
 """Schemi Pydantic condivisi tra route e servizi."""
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.config import (
+    MAX_CHAT_HISTORY_MESSAGE_CHARS,
+    MAX_CHAT_HISTORY_TURNS,
+    MAX_CHAT_MESSAGE_CHARS,
+    MAX_SIMPLIFY_TEXT_CHARS,
+)
 
 
 class FarmacoDetail(BaseModel):
@@ -51,9 +58,9 @@ class DocumentoResponse(BaseModel):
 
 
 class SimplifyRequest(BaseModel):
-    farmaco_id: str
-    sezione: str = "tutta"
-    testo: str | None = None
+    farmaco_id: str = Field(min_length=1, max_length=64)
+    sezione: str = Field(default="tutta", max_length=80)
+    testo: str | None = Field(default=None, min_length=1, max_length=MAX_SIMPLIFY_TEXT_CHARS)
     forza: bool = False
 
 
@@ -78,15 +85,25 @@ class SimplifyResponse(BaseModel):
 
 
 class ChatMessage(BaseModel):
-    ruolo: str
-    testo: str
+    ruolo: str = Field(min_length=1, max_length=20)
+    testo: str = Field(max_length=MAX_CHAT_HISTORY_MESSAGE_CHARS)
 
 
 class ChatRequest(BaseModel):
-    farmaco_id: str
-    messaggio: str
-    storico: list[ChatMessage] = Field(default_factory=list)
-    sessione_id: str | None = None
+    farmaco_id: str = Field(min_length=1, max_length=64)
+    messaggio: str = Field(min_length=1, max_length=MAX_CHAT_MESSAGE_CHARS)
+    storico: list[ChatMessage] = Field(
+        default_factory=list, max_length=MAX_CHAT_HISTORY_TURNS
+    )
+    sessione_id: str | None = Field(default=None, max_length=64)
+
+    @field_validator("messaggio")
+    @classmethod
+    def _messaggio_non_vuoto(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Il messaggio non può essere vuoto")
+        return value
 
 
 class ChatResponse(BaseModel):
@@ -127,7 +144,7 @@ class ScenariResponse(BaseModel):
 
 
 class ScenarioRequest(BaseModel):
-    farmaco_id: str
+    farmaco_id: str = Field(min_length=1, max_length=64)
 
 
 class ScenarioResponse(BaseModel):

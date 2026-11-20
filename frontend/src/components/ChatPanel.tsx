@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from "react"
 import { api, type FonteCitata } from "@/lib/api"
 
+const MAX_STORICO = 10
+const MAX_STORICO_TESTO = 2000
+const MAX_MESSAGGIO = 1000
+
 interface ChatPanelProps {
   farmacoId: string
   isOpen: boolean
@@ -44,7 +48,12 @@ export function ChatPanel({
     const testo = input.trim()
     if (!testo || loading) return
 
-    const storico = messaggi.map((m) => ({ ruolo: m.ruolo, testo: m.testo }))
+    const storico = messaggi
+      .slice(-MAX_STORICO)
+      .map((m) => ({
+        ruolo: m.ruolo,
+        testo: m.testo.slice(0, MAX_STORICO_TESTO),
+      }))
     setMessaggi((prev) => [...prev, { ruolo: "utente", testo }])
     setInput("")
     setLoading(true)
@@ -68,11 +77,15 @@ export function ChatPanel({
       }
     } catch (error) {
       console.error("Errore chat:", error)
+      const messaggio =
+        error instanceof Error && error.message
+          ? error.message
+          : "Scusa, c'è stato un errore. Riprova tra poco."
       setMessaggi((prev) => [
         ...prev,
         {
           ruolo: "assistente",
-          testo: "Scusa, c'è stato un errore. Riprova tra poco.",
+          testo: messaggio,
         },
       ])
     } finally {
@@ -171,6 +184,7 @@ export function ChatPanel({
             onKeyDown={(e) => e.key === "Enter" && invia()}
             placeholder="Scrivi una domanda sul farmaco..."
             aria-label="Domanda sul farmaco"
+            maxLength={MAX_MESSAGGIO}
             className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             disabled={loading}
           />

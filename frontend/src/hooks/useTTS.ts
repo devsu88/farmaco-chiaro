@@ -84,7 +84,8 @@ export function useTTS(onPronto?: () => void) {
         let messaggio = "Sintesi vocale non disponibile"
         try {
           const body = await res.json()
-          messaggio = body?.detail || body?.error?.message || messaggio
+          const detail = body?.detail ?? body?.error?.message
+          if (typeof detail === "string") messaggio = detail
         } catch {
           // risposta non JSON
         }

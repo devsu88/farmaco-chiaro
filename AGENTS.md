@@ -125,6 +125,11 @@ PR with the artifact links and the verification output.
   calling the embedding provider.
 - Vercel containers have no persistent disk. Cache goes to `CACHE_DIR`; the
   Qdrant index is external.
+- Rate limiting is in memory per instance (`backend/app/rate_limit.py`):
+  20/min chat and simplify, 10/min TTS, 60 s window, per client IP. Input
+  limits live in `backend/app/config.py` and `backend/app/schemas.py`. The
+  Next proxy forwards `x-forwarded-for` and times out at `PROXY_TIMEOUT_MS`
+  (default 100 s).
 
 ## Deploy and rollback
 

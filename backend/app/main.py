@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app import farmaci
 from app.config import FRONTEND_ORIGINS
+from app.observability import RequestLogMiddleware
 from app.routes import chat, rag, search, simplify, tts
 from app.routes import farmaci as farmaci_routes
 from app.routes import scenari as scenari_routes
@@ -21,12 +22,16 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Farmaco Chiaro API", version="0.3.0")
 
+# L'ultimo middleware aggiunto è il più esterno: CORS deve avvolgere anche le
+# risposte di errore (429/413) e gli header di request id.
+app.add_middleware(RequestLogMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=FRONTEND_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
+    expose_headers=["Retry-After", "X-Request-ID"],
 )
 
 app.include_router(farmaci_routes.router, prefix="/api")

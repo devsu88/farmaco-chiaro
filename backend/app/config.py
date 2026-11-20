@@ -37,4 +37,28 @@ def _csv_env(name: str, default: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+def _int_env(name: str, default: int, minimum: int = 1) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        value = default
+    return max(minimum, value)
+
+
 FRONTEND_ORIGINS = _csv_env("FRONTEND_ORIGINS", "http://localhost:3000")
+
+# Limiti di input e di richiesta. I default sono pensati per un uso umano
+# normale della demo, non per un carico da produzione.
+MAX_CHAT_MESSAGE_CHARS = _int_env("MAX_CHAT_MESSAGE_CHARS", 1000)
+MAX_CHAT_HISTORY_TURNS = _int_env("MAX_CHAT_HISTORY_TURNS", 10)
+MAX_CHAT_HISTORY_MESSAGE_CHARS = _int_env("MAX_CHAT_HISTORY_MESSAGE_CHARS", 2000)
+MAX_SIMPLIFY_TEXT_CHARS = _int_env("MAX_SIMPLIFY_TEXT_CHARS", 12000)
+MAX_SEARCH_QUERY_CHARS = _int_env("MAX_SEARCH_QUERY_CHARS", 200)
+MAX_REQUEST_BYTES = _int_env("MAX_REQUEST_BYTES", 2 * 1024 * 1024)
+
+# Rate limit per IP, in memoria e per istanza. Su più istanze il limite
+# effettivo è la somma: è documentato come best-effort.
+RATE_LIMIT_WINDOW_SECONDS = _int_env("RATE_LIMIT_WINDOW_SECONDS", 60)
+RATE_LIMIT_CHAT = _int_env("RATE_LIMIT_CHAT", 20)
+RATE_LIMIT_SIMPLIFY = _int_env("RATE_LIMIT_SIMPLIFY", 20)
+RATE_LIMIT_TTS = _int_env("RATE_LIMIT_TTS", 10)
