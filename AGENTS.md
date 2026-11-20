@@ -140,6 +140,13 @@ safe. Rollback means promoting the previous healthy deployment
 and a drug page. Do not change production data or indexes without a rollback
 plan.
 
+**Verified on 2026-11-20:** a push to `main` did **not** create a new
+Production deployment; the live deployment was two days old and did not
+contain the current hardening. Treat Production as manual: run
+`vercel ls`, deploy explicitly with `vercel --prod` only after authorization,
+then verify the commit SHA and smoke-test the app. Do not assume that a merge
+is live.
+
 ## Where knowledge lives
 
 - `REVIEW.md` — review passes and severity definitions.
