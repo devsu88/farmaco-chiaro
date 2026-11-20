@@ -144,3 +144,17 @@ esegue.
 
 Revertire il branch. Nessuna migrazione. Il deploy Production resta manuale e
 lo smoke test è un comando separato.
+
+## Risultato (2026-11-20)
+
+Implementato e verificato:
+
+- `/api/health` espone `commit` e `built_at`; in produzione il commit
+  corrisponde a `HEAD` (`f191ed1`).
+- `scripts/smoke.py` passa 7/7 in produzione senza chiamate LLM valide.
+- `scripts/log_report.py` calcola latenza, status, 429, 5xx e token; i test
+  coprono il campione e le soglie.
+- Chat e semplificazione loggano i token; la chat somma le chiamate di
+  riscrittura, meta, espansione e generazione.
+- `Production smoke` gira ogni giorno con `--require-commit`.
+- `make check` verde con 210 test.

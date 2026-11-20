@@ -22,7 +22,9 @@ git rev-parse --short HEAD
 Se `commit` è `unknown`, Vercel non sta esponendo `VERCEL_GIT_COMMIT_SHA` al
 container. Imposta `BUILD_TIME` nelle env del progetto e verifica la
 documentazione Vercel per lo SHA; nel frattempo lo smoke test resta
-funzionante e segnala un warning.
+funzionante e segnala un warning. Verificato il 2026-11-20: Vercel espone lo
+SHA, quindi `commit` corrisponde a `HEAD`; `built_at` resta `unknown` finché
+non si imposta `BUILD_TIME`. Lo SHA è il campo autorevole.
 
 ## Smoke test
 

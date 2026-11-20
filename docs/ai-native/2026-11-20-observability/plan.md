@@ -12,33 +12,33 @@ LLM e rendere i log sufficienti per latenza, errori e token.
 **File:** `backend/app/version.py` (nuovo), `backend/app/main.py`,
 `backend/tests/test_version.py` (nuovo).
 
-- [ ] `COMMIT_SHA` da `VERCEL_GIT_COMMIT_SHA`, poi `GIT_COMMIT_SHA`, poi
+- [x] `COMMIT_SHA` da `VERCEL_GIT_COMMIT_SHA`, poi `GIT_COMMIT_SHA`, poi
   `"unknown"`; `BUILD_TIME` da `BUILD_TIME`, poi `"unknown"`.
-- [ ] `/health` restituisce `status`, `commit`, `built_at`.
-- [ ] Test: `status` invariato, i due campi presenti; `unknown` accettato.
-- [ ] Eseguire.
+- [x] `/health` restituisce `status`, `commit`, `built_at`.
+- [x] Test: `status` invariato, i due campi presenti; `unknown` accettato.
+- [x] Eseguire.
 
 ### Task 2 — Usage della chat
 
 **File:** `backend/graph/chat_graph.py`, `backend/tests/test_usage.py` (nuovo).
 
-- [ ] `_usage(message)` legge `usage_metadata` (`input_tokens`/`output_tokens`/
+- [x] `_usage(message)` legge `usage_metadata` (`input_tokens`/`output_tokens`/
   `total_tokens`, fallback `prompt_tokens`/`completion_tokens`).
-- [ ] `_merge_usage` somma due dict.
-- [ ] Accumulo in `nodo_riscrivi_query`, `nodo_genera_meta`,
+- [x] `_merge_usage` somma due dict.
+- [x] Accumulo in `nodo_riscrivi_query`, `nodo_genera_meta`,
   `nodo_espandi_query`, `_genera`; `ChatState` ha `usage`.
-- [ ] `run_chat` restituisce `usage`.
-- [ ] Test con un fake LLM che restituisce `usage_metadata`: la somma è corretta
+- [x] `run_chat` restituisce `usage`.
+- [x] Test con un fake LLM che restituisce `usage_metadata`: la somma è corretta
   e le chiavi mancanti valgono 0.
 
 ### Task 3 — Usage della semplificazione
 
 **File:** `backend/services/simplify.py`, `backend/tests/test_usage.py`.
 
-- [ ] `_chiama_modello` allega l’usage alla risposta normalizzata.
-- [ ] `_merge` somma l’usage delle parti; il fallback ha usage zero.
-- [ ] Test: due chunk producono la somma; cache hit non raddoppia.
-- [ ] La route logga `prompt_tokens`, `completion_tokens`, `total_tokens` per
+- [x] `_chiama_modello` allega l’usage alla risposta normalizzata.
+- [x] `_merge` somma l’usage delle parti; il fallback ha usage zero.
+- [x] Test: due chunk producono la somma; cache hit non raddoppia.
+- [x] La route logga `prompt_tokens`, `completion_tokens`, `total_tokens` per
   chat e simplify.
 
 ### Task 4 — Smoke test
@@ -46,45 +46,45 @@ LLM e rendere i log sufficienti per latenza, errori e token.
 **File:** `scripts/smoke.py` (nuovo), `backend/tests/test_smoke_script.py`
 (nuovo), `.github/workflows/smoke.yml` (nuovo), `Makefile`.
 
-- [ ] Funzione `run_checks(base_url, timeout, require_commit, fetch=...)` con i
+- [x] Funzione `run_checks(base_url, timeout, require_commit, fetch=...)` con i
   sette check della spec; nessuna chiamata valida all’LLM.
-- [ ] CLI con `--base-url`, `--timeout`, `--require-commit`; exit 1 se un check
+- [x] CLI con `--base-url`, `--timeout`, `--require-commit`; exit 1 se un check
   fallisce.
-- [ ] Test con un `fetch` finto: scenario sano, scenario vecchio backend
+- [x] Test con un `fetch` finto: scenario sano, scenario vecchio backend
   (chat vuota 200), scenario Qdrant giù (warning non errore).
-- [ ] `make smoke`.
-- [ ] Workflow giornaliero + `workflow_dispatch`, senza segreti.
+- [x] `make smoke`.
+- [x] Workflow giornaliero + `workflow_dispatch`, senza segreti.
 
 ### Task 5 — Report dai log
 
 **File:** `scripts/log_report.py` (nuovo), `backend/tests/test_log_report.py`
 (nuovo), `Makefile`.
 
-- [ ] Parser JSONL tollerante alle righe non JSON.
-- [ ] `summarize(eventi)` → totali, status, 429, 5xx, p50/p95, token per
+- [x] Parser JSONL tollerante alle righe non JSON.
+- [x] `summarize(eventi)` → totali, status, 429, 5xx, p50/p95, token per
   modello, cache hit.
-- [ ] CLI `--json`, `--max-tokens`, `--max-errors`, `--max-429`,
+- [x] CLI `--json`, `--max-tokens`, `--max-errors`, `--max-429`,
   `--usd-per-1m-input`, `--usd-per-1m-output`; exit 1 sulle soglie.
-- [ ] Test con un campione di eventi.
-- [ ] `make report-logs LOGS=...`.
+- [x] Test con un campione di eventi.
+- [x] `make report-logs LOGS=...`.
 
 ### Task 6 — Runbook e documentazione
 
 **File:** `docs/ai-native/2026-11-20-observability/runbook.md`,
 `AGENTS.md`, `README.md`.
 
-- [ ] Drain Vercel → Better Stack, export, comando report, soglia e owner.
-- [ ] Sequenza deploy: `vercel --prod` → `make smoke` → confronto SHA.
-- [ ] Cosa fare se lo smoke fallisce e come rollbackare.
-- [ ] Comandi `make smoke` e `make report-logs` in README/AGENTS.
+- [x] Drain Vercel → Better Stack, export, comando report, soglia e owner.
+- [x] Sequenza deploy: `vercel --prod` → `make smoke` → confronto SHA.
+- [x] Cosa fare se lo smoke fallisce e come rollbackare.
+- [x] Comandi `make smoke` e `make report-logs` in README/AGENTS.
 
 ### Task 7 — Verifica, merge, deploy
 
-- [ ] `make test`, `make check`.
-- [ ] Smoke locale contro `http://127.0.0.1:8000` (backend avviato).
-- [ ] Commit, merge fast-forward in `main`, push.
-- [ ] `vercel --prod`, poi `make smoke` contro produzione e confronto SHA.
-- [ ] Aggiornare questo piano con i risultati.
+- [x] `make test`, `make check`.
+- [x] Smoke locale contro `http://127.0.0.1:8000` (backend avviato).
+- [x] Commit, merge fast-forward in `main`, push.
+- [x] `vercel --prod`, poi `make smoke` contro produzione e confronto SHA.
+- [x] Aggiornare questo piano con i risultati.
 
 ## Rischi
 
@@ -104,3 +104,15 @@ LLM e rendere i log sufficienti per latenza, errori e token.
 | `make check` | verdi + checker `OK` |
 | `python3 scripts/smoke.py` | tutti i check verdi contro produzione |
 | `python3 scripts/log_report.py --help` | opzioni disponibili |
+
+## Risultato (2026-11-20)
+
+- `make test`: **210 passed** (191 esistenti + 19 nuovi).
+- `make check`: verde, Ruff pulito, build a 18 route, checker `OK`.
+- Smoke locale (`--backend`): 6/6, `commit=unknown` come atteso fuori da
+  Vercel.
+- Deploy Production del commit `f191ed1`; smoke produzione: **7/7**;
+  `/api/health` restituisce `commit=f191ed1…` uguale a `HEAD`.
+- `built_at` è `unknown`: Vercel espone lo SHA ma non un timestamp di build.
+  Lo SHA è il campo autorevole; `BUILD_TIME` è opzionale.
+- Il workflow `Production smoke` è attivo con `--require-commit`.
