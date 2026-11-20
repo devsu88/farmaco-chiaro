@@ -145,7 +145,8 @@ Production deployment; the live deployment was two days old and did not
 contain the current hardening. Treat Production as manual: run
 `vercel ls`, deploy explicitly with `vercel --prod` only after authorization,
 then verify the commit SHA and smoke-test the app. Do not assume that a merge
-is live.
+is live. After a manual deploy of `9ebee84`, the alias served
+`X-Request-ID` and rejected an empty chat message with `422`.
 
 ## Where knowledge lives
 

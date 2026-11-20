@@ -14,9 +14,12 @@ ha mostrato:
   `200`;
 - l’ultimo deploy Production su Vercel ha **2 giorni**, mentre `main` ha i
   commit di oggi;
-- la produzione **non** restituisce `X-Request-ID` e accetta
-  `POST /api/chat` con `messaggio: ""`, quindi non contiene l’hardening;
-- un push su `main` non ha creato un nuovo deploy Production.
+- al primo smoke test la produzione non restituiva `X-Request-ID` e accettava
+  `POST /api/chat` con `messaggio: ""`: non conteneva l’hardening. Dopo un
+  deploy manuale del 2026-11-20 i due sintomi sono scomparsi, ma il push su
+  `main` non aveva creato il deploy e non c’è un modo automatico per sapere
+  quale commit sta girando;
+- il deploy Production è manuale: un push su `main` non basta.
 
 Inoltre i log strutturati esistono solo come righe su stdout: non c’è un
 report di latenza, `429`, `502/504` o costo per modello, e non c’è un alert di
@@ -93,10 +96,14 @@ produzione serve quel commit; dopo una settimana si sa quanto è costata, quanto
   → `200`; `GET /farmaco/012745_01` → `200`.
 - `GET /api/farmaci/012745_01` → `404`: il path pubblico è singolare, il
   plurale è interno al backend.
-- `POST /api/chat` con `messaggio: ""` → `200` con risposta reale: produzione
-  pre-hardening.
-- Ultimo deploy Production Vercel: 2 giorni; nessun deploy creato dal push su
-  `main`.
+- Primo smoke test (pre-deploy): `POST /api/chat` con `messaggio: ""` → `200`
+  con risposta reale, nessun `X-Request-ID`.
+- Dopo il deploy manuale del 2026-11-20 (`vercel --prod`, commit `9ebee84`):
+  `X-Request-ID` presente, `messaggio: ""` → `422`, `messaggio` di 1.001
+  caratteri → `422`; `/api/rag/status`, `/api/farmaco/012745_01` e la pagina
+  del farmaco restano `200`.
+- Il deploy non è partito dal push su `main`: è stato eseguito a mano. Non c’è
+  ancora un’identità di release interrogabile.
 
 ## Prossimo passo
 
