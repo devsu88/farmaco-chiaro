@@ -180,3 +180,7 @@ Percorso adottato, senza dipendenze nuove e senza cambiare il prodotto:
 
 Limite accettato: polling, non streaming. Se GitHub salta più di un'ora di
 esecuzioni la finestra è persa; nessun alert in tempo reale.
+
+Deployato in Production il commit `8eba82c`: `/api/health` espone lo stesso
+SHA, smoke 7/7, e i log runtime hanno `data.message` con il JSON puro. Manca
+solo il secret `VERCEL_TOKEN` per attivare l'export periodico.

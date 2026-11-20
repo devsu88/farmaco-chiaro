@@ -130,3 +130,9 @@ LLM e rendere i log sufficienti per latenza, errori e token.
 
 Prove: export reale di 40 minuti → 1 evento normalizzato, report con p50/p95;
 secondo export con `--append` → 0 duplicati. `make check` verde.
+
+Deploy Production del commit `8eba82c`: `/api/health` restituisce lo stesso
+SHA, smoke 7/7. I log runtime ora hanno `data.message` uguale al JSON puro
+(verificato su tre richieste 422); export post-deploy di 20 minuti → 3 eventi,
+report con p50/p95. Il workflow `Log export` è valido e salta con un warning
+finché `VERCEL_TOKEN` non è configurato.
