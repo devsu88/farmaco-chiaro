@@ -14,6 +14,7 @@ from app.observability import RequestLogMiddleware
 from app.routes import chat, rag, search, simplify, tts
 from app.routes import farmaci as farmaci_routes
 from app.routes import scenari as scenari_routes
+from app.version import BUILD_TIME, COMMIT_SHA
 from services import vector_store
 
 load_dotenv()
@@ -64,7 +65,11 @@ def root() -> dict:
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "commit": COMMIT_SHA,
+        "built_at": BUILD_TIME,
+    }
 
 
 @app.get("/ready")

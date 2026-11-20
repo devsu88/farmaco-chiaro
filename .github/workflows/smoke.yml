@@ -1,0 +1,22 @@
+name: Production smoke
+
+# Daily check of the production alias. The script uses only invalid chat
+# requests, so it never spends LLM quota. Add --require-commit once
+# /health is confirmed to expose VERCEL_GIT_COMMIT_SHA.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Smoke test production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run smoke test
+        run: python3 scripts/smoke.py

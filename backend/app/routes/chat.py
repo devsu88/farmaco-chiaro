@@ -54,6 +54,7 @@ def chat(req: ChatRequest, request: Request) -> ChatResponse:
         log_event(request, "chat_failed", farmaco_id=req.farmaco_id)
         raise HTTPException(status_code=502, detail="Servizio chat non disponibile")
 
+    usage = result.get("usage") or {}
     log_event(
         request,
         "chat_completed",
@@ -61,6 +62,9 @@ def chat(req: ChatRequest, request: Request) -> ChatResponse:
         fonti=len(result["fonti"]),
         fallback_usato=result.get("fallback_usato", False),
         model=CHAT_MODEL,
+        prompt_tokens=usage.get("prompt_tokens", 0),
+        completion_tokens=usage.get("completion_tokens", 0),
+        total_tokens=usage.get("total_tokens", 0),
     )
 
     return ChatResponse(

@@ -22,6 +22,7 @@ from langgraph.graph import END, StateGraph
 from app import farmaci
 from app.json_utils import parse_json_object
 from app.llm import CHAT_MODEL, build_llm
+from app.usage import empty_usage, merge_usage, usage_from_message
 from services.citazioni import (
     arricchisci_fonti,
     estrai_estratto,
@@ -46,6 +47,7 @@ class ChatState(TypedDict, total=False):
     fonti_citate: list[dict]
     informazione_trovata: bool
     fallback_usato: bool
+    usage: dict[str, int]
 
 
 SYSTEM_PROMPT = """Sei un assistente specializzato nella lettura di fogli illustrativi farmaci (AIFA).
@@ -219,8 +221,12 @@ def _genera(
             "fonti_citate": [],
             "informazione_trovata": False,
             "fallback_usato": fallback_usato,
+            "usage": state.get("usage", empty_usage()),
         }
 
+    usage = merge_usage(
+        state.get("usage", empty_usage()), usage_from_message(risposta)
+    )
     contenuto = risposta.content if isinstance(risposta.content, str) else str(risposta.content)
     parsed = parse_json_object(contenuto)
     testo_risposta = parsed.get("risposta") or contenuto
@@ -261,6 +267,7 @@ def _genera(
         "fonti_citate": fonti,
         "informazione_trovata": info_trovata,
         "fallback_usato": fallback_usato,
+        "usage": usage,
     }
 
 
@@ -279,6 +286,7 @@ def nodo_riscrivi_query(state: ChatState) -> dict:
     nome_farmaco = farmaco.nome if farmaco else state["farmaco_id"]
     history = _format_history(state["messaggi"])
 
+    usage = state.get("usage", empty_usage())
     try:
         risposta = get_llm().invoke(
             [
@@ -294,6 +302,7 @@ def nodo_riscrivi_query(state: ChatState) -> dict:
                 ),
             ]
         )
+        usage = merge_usage(usage, usage_from_message(risposta))
         riscritta = (
             risposta.content if isinstance(risposta.content, str) else str(risposta.content)
         ).strip()
@@ -304,6 +313,7 @@ def nodo_riscrivi_query(state: ChatState) -> dict:
     return {
         "query_riscritta": riscritta or query,
         "domanda_meta": False,
+        "usage": usage,
     }
 
 
@@ -312,6 +322,7 @@ def nodo_genera_meta(state: ChatState) -> dict:
     query = state["messaggi"][-1]["testo"]
     history = _format_history(state["messaggi"])
 
+    usage = state.get("usage", empty_usage())
     try:
         risposta = get_llm().invoke(
             [
@@ -321,6 +332,7 @@ def nodo_genera_meta(state: ChatState) -> dict:
                 ),
             ]
         )
+        usage = merge_usage(usage, usage_from_message(risposta))
         testo = (
             risposta.content if isinstance(risposta.content, str) else str(risposta.content)
         ).strip()
@@ -333,6 +345,7 @@ def nodo_genera_meta(state: ChatState) -> dict:
         "fonti_citate": [],
         "informazione_trovata": True,
         "fallback_usato": False,
+        "usage": usage,
     }
 
 
@@ -348,6 +361,7 @@ def nodo_retrieval(state: ChatState) -> dict:
 def nodo_espandi_query(state: ChatState) -> dict:
     """Espansione usata se la ricerca originale è debole o vuota."""
     query = state.get("query_riscritta") or state["messaggi"][-1]["testo"]
+    usage = state.get("usage", empty_usage())
     try:
         risposta = get_llm().invoke(
             [
@@ -355,12 +369,13 @@ def nodo_espandi_query(state: ChatState) -> dict:
                 HumanMessage(content=QUERY_EXPANSION_PROMPT.format(query=query)),
             ]
         )
+        usage = merge_usage(usage, usage_from_message(risposta))
         espansa = risposta.content if isinstance(risposta.content, str) else str(risposta.content)
         espansa = espansa.strip()
     except Exception:
         logger.warning("Query expansion fallita, uso la query originale", exc_info=True)
         espansa = query
-    return {"query_espansa": espansa or query}
+    return {"query_espansa": espansa or query, "usage": usage}
 
 
 def nodo_retrieval_espanso(state: ChatState) -> dict:
@@ -411,6 +426,7 @@ def nodo_fallback(state: ChatState) -> dict:
             "fonti_citate": [],
             "informazione_trovata": False,
             "fallback_usato": True,
+            "usage": state.get("usage", empty_usage()),
         }
 
 
@@ -485,6 +501,7 @@ def run_chat(messaggi: list[dict], farmaco_id: str, sessione_id: str) -> dict:
         "fonti_citate": [],
         "informazione_trovata": False,
         "fallback_usato": False,
+        "usage": empty_usage(),
     }
 
     result = chat_graph.invoke(initial_state)
@@ -493,4 +510,5 @@ def run_chat(messaggi: list[dict], farmaco_id: str, sessione_id: str) -> dict:
         "fonti": result.get("fonti_citate", []),
         "sessione_id": sessione_id,
         "fallback_usato": result.get("fallback_usato", False),
+        "usage": result.get("usage", empty_usage()),
     }

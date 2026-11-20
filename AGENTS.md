@@ -26,6 +26,8 @@ a cosmetic bug.
 | `make dataset` | Regenerate `backend/data/rag/` from Markdown |
 | `make index` | Embed chunks and load them into Qdrant (needs credentials) |
 | `make eval` | Dense retrieval evaluation on `backend/eval/qa.jsonl` (needs Qdrant) |
+| `make smoke` | Production smoke test (no valid LLM calls) |
+| `make report-logs LOGS=file.jsonl` | Latency, status, token and cost report from JSON logs |
 | `make up` / `make down` | Docker Compose with local Qdrant |
 
 Backend alone: `cd backend && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000`.

@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend dataset index eval test lint build check up down logs
+.PHONY: dev backend frontend dataset index eval test lint build check smoke report-logs up down logs
 
 backend:
 	cd backend && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
@@ -30,6 +30,13 @@ check: test
 	cd backend && uv run ruff check .
 	cd frontend && npm run build
 	python3 scripts/check_ai_native.py
+
+smoke:
+	python3 scripts/smoke.py $(SMOKE_ARGS)
+
+report-logs:
+	@test -n "$(LOGS)" || (echo "Uso: make report-logs LOGS=file.jsonl"; exit 1)
+	python3 scripts/log_report.py "$(LOGS)" $(REPORT_ARGS)
 
 build:
 	cd frontend && npm run build

@@ -140,6 +140,8 @@ cd .. && docker compose up --build
 | `make dataset` | Regenerate chunks, sections, blocks and registry from the Markdown files |
 | `make index` | Compute embeddings and load the index into Qdrant |
 | `make eval` | Evaluate dense retrieval on `backend/eval/qa.jsonl` |
+| `make smoke` | Smoke test production without valid LLM calls |
+| `make report-logs LOGS=file.jsonl` | Latency, status and token report from JSON logs |
 | `make test` | Backend tests and frontend lint |
 | `make check` | Tests, lint (Ruff + ESLint), production build, process/artifact checks |
 | `make lint` | Ruff on the backend, ESLint on the frontend |

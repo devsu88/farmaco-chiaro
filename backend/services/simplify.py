@@ -7,6 +7,7 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.json_utils import parse_json_object
+from app.usage import empty_usage, merge_usage, usage_from_message
 from services import cache
 from services.documento import documento as documento_farmaco
 
@@ -82,6 +83,7 @@ def _fallback(motivo: str) -> dict[str, Any]:
         "domande_farmacista": [],
         "entita_verificate": {"dosaggi_preservati": False, "note": motivo},
         "errore": motivo,
+        "usage": empty_usage(),
     }
 
 
@@ -180,6 +182,7 @@ Rispondi solo con il JSON richiesto."""
                 "entita_verificate",
                 {"dosaggi_preservati": False, "note": "non verificato"},
             )
+            risultato["usage"] = usage_from_message(risposta)
             return _normalizza(risultato)
 
         ultimo_errore = "Il modello non ha restituito un JSON valido"
@@ -225,7 +228,9 @@ def _normalizza(risultato: dict[str, Any]) -> dict[str, Any]:
 
 def _merge(risultati: list[dict[str, Any]], totale_parti: int) -> dict[str, Any]:
     if len(risultati) == 1:
-        return _normalizza(risultati[0])
+        risultato = _normalizza(risultati[0])
+        risultato["usage"] = risultato.get("usage", empty_usage())
+        return risultato
 
     una_frase = next((r.get("una_frase") for r in risultati if r.get("una_frase")), "")
     versione_facile: list[str] = []
@@ -233,6 +238,7 @@ def _merge(risultati: list[dict[str, Any]], totale_parti: int) -> dict[str, Any]
     domande: list[str] = []
     dosaggi_ok = True
     note: list[str] = []
+    usage = empty_usage()
 
     for risultato in risultati:
         versione_facile.extend(risultato.get("versione_facile") or [])
@@ -247,6 +253,7 @@ def _merge(risultati: list[dict[str, Any]], totale_parti: int) -> dict[str, Any]
             note.append(str(entita["note"]))
         if risultato.get("errore"):
             note.append(str(risultato["errore"]))
+        usage = merge_usage(usage, risultato.get("usage"))
 
     glossario_unico: list[dict[str, str]] = []
     visti: set[str] = set()
@@ -267,6 +274,7 @@ def _merge(risultati: list[dict[str, Any]], totale_parti: int) -> dict[str, Any]
             "dosaggi_preservati": dosaggi_ok,
             "note": f"Semplificato in {totale_parti} parti. " + " ".join(note),
         },
+        "usage": usage,
     }
 
 

@@ -60,6 +60,9 @@ def simplify(req: SimplifyRequest, request: Request) -> dict:
                 cached=True,
                 errore=None,
                 model=SIMPLIFY_MODEL,
+                prompt_tokens=0,
+                completion_tokens=0,
+                total_tokens=0,
             )
             return {**cached, "cached": True}
 
@@ -72,11 +75,15 @@ def simplify(req: SimplifyRequest, request: Request) -> dict:
             cached=False,
             errore="api_key",
             model=SIMPLIFY_MODEL,
+            prompt_tokens=0,
+            completion_tokens=0,
+            total_tokens=0,
         )
         return fallback("API key OpenRouter mancante o non valida")
 
     llm = build_llm(model=SIMPLIFY_MODEL, temperature=0.2, max_tokens=2000)
     risultato = semplifica(testo, llm, forza=req.forza)
+    usage = risultato.get("usage") or {}
     log_event(
         request,
         "simplify_completed",
@@ -85,5 +92,8 @@ def simplify(req: SimplifyRequest, request: Request) -> dict:
         cached=False,
         errore=risultato.get("errore"),
         model=SIMPLIFY_MODEL,
+        prompt_tokens=usage.get("prompt_tokens", 0),
+        completion_tokens=usage.get("completion_tokens", 0),
+        total_tokens=usage.get("total_tokens", 0),
     )
     return risultato
