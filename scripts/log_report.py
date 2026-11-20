@@ -16,18 +16,70 @@ from pathlib import Path
 TOKEN_FIELDS = ("prompt_tokens", "completion_tokens", "total_tokens")
 
 
+def _json_object(text: str) -> dict | None:
+    """Estrae il primo oggetto JSON da una riga, ignorando un eventuale prefisso."""
+    start = text.find("{")
+    if start < 0:
+        return None
+    try:
+        value, _ = json.JSONDecoder().raw_decode(text[start:])
+    except json.JSONDecodeError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def normalize_record(record: dict) -> dict | None:
+    """Accetta un evento già puro o un record di `vercel logs --json`.
+
+    Vercel incapsula il nostro JSON in ``data.message``; gli altri messaggi
+    (avvio di uvicorn, summary della paginazione) non sono eventi e vengono
+    scartati.
+    """
+    if record.get("type") == "summary":
+        return None
+
+    data = record.get("data")
+    if record.get("type") == "log" and isinstance(data, dict):
+        message = data.get("message")
+        event = _json_object(message) if isinstance(message, str) else None
+        if event is None:
+            return None
+        if data.get("timestamp"):
+            event.setdefault("ts", data["timestamp"])
+        return event
+
+    return record
+
+
+def record_key(event: dict):
+    """Chiave di deduplica per gli export sovrapposti, solo se c'è il timestamp."""
+    if not event.get("ts"):
+        return None
+    return (event.get("ts"), event.get("request_id"), event.get("event"))
+
+
 def parse_lines(lines) -> list[dict]:
     events: list[dict] = []
+    seen: set = set()
     for line in lines:
         line = line.strip()
         if not line:
             continue
         try:
-            event = json.loads(line)
+            record = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if isinstance(event, dict):
-            events.append(event)
+        if not isinstance(record, dict):
+            continue
+        event = normalize_record(record)
+        if event is None:
+            continue
+        key = record_key(event)
+        if key is not None:
+            if key in seen:
+                continue
+            seen.add(key)
+        events.append(event)
     return events
 
 

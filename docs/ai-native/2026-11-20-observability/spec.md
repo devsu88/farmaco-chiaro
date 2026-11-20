@@ -158,3 +158,25 @@ Implementato e verificato:
   riscrittura, meta, espansione e generazione.
 - `Production smoke` gira ogni giorno con `--require-commit`.
 - `make check` verde con 210 test.
+
+## Incremento: export su piano Hobby (2026-11-20)
+
+Verificato: il team è su **Hobby**, i Log Drains richiedono **Pro** e i log
+runtime sono conservati **un'ora**. Il drain descritto in R5 resta il percorso
+ideale, ma non è eseguibile oggi.
+
+Percorso adottato, senza dipendenze nuove e senza cambiare il prodotto:
+
+- `StructuredFormatter` emette il JSON puro per `app.observability`; gli altri
+  logger mantengono il prefisso. Il record Vercel contiene quindi il nostro
+  JSON senza prefisso.
+- `scripts/export_logs.py` chiama `vercel logs --json`, normalizza l'envelope
+  (`data.message`), scarta i messaggi non strutturati e deduplica per
+  `(timestamp, request_id, event)`.
+- `scripts/log_report.py` accetta sia eventi puri sia l'export Vercel, quindi
+  funziona anche sui log già in produzione prima del redeploy.
+- Workflow `Log export` ogni 30 minuti, finestra 50 minuti, artifact 30 giorni,
+  fallisce su qualunque 5xx.
+
+Limite accettato: polling, non streaming. Se GitHub salta più di un'ora di
+esecuzioni la finestra è persa; nessun alert in tempo reale.

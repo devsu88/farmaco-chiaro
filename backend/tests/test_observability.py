@@ -7,6 +7,7 @@ import logging
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.observability import StructuredFormatter
 
 client = TestClient(app)
 
@@ -78,3 +79,25 @@ def test_rate_limit_logga_un_evento(monkeypatch, caplog):
     rate_limited = next(evento for evento in eventi if evento["event"] == "rate_limited")
     assert rate_limited["bucket"] == "chat"
     assert rate_limited["retry_after"] >= 1
+
+
+def _record(message: str) -> logging.LogRecord:
+    return logging.LogRecord(
+        "app.observability", logging.INFO, __file__, 1, message, None, None
+    )
+
+
+def test_formatter_emette_json_puro_per_i_log_strutturati():
+    formatter = StructuredFormatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    riga = formatter.format(_record('{"event": "http_request", "status": 200}'))
+
+    assert riga == '{"event": "http_request", "status": 200}'
+
+
+def test_formatter_mantiene_il_prefisso_per_gli_altri_logger():
+    formatter = StructuredFormatter("%(levelname)s %(name)s %(message)s")
+    record = logging.LogRecord(
+        "uvicorn.error", logging.INFO, __file__, 1, "avvio", None, None
+    )
+
+    assert formatter.format(record) == "INFO uvicorn.error avvio"

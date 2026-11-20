@@ -116,3 +116,17 @@ LLM e rendere i log sufficienti per latenza, errori e token.
 - `built_at` è `unknown`: Vercel espone lo SHA ma non un timestamp di build.
   Lo SHA è il campo autorevole; `BUILD_TIME` è opzionale.
 - Il workflow `Production smoke` è attivo con `--require-commit`.
+
+## Task 8 — Export su Hobby (2026-11-20)
+
+- [x] Verificato il piano del team: Hobby; Drains richiedono Pro; retention 1 h.
+- [x] `StructuredFormatter` e `configure_logging()`: JSON puro per
+  `app.observability`, prefisso invariato per gli altri logger.
+- [x] `normalize_record`, `record_key`, deduplica in `log_report.py`.
+- [x] `scripts/export_logs.py` con `--since`, `--limit`, `--output`, `--append`,
+  `--project`, `--scope`; token solo da `VERCEL_TOKEN`.
+- [x] Workflow `Log export` ogni 30 minuti, artifact 30 giorni, `--max-errors 0`.
+- [x] Test: 4 su `export_logs`, 3 sull'envelope Vercel, 2 sul formatter.
+
+Prove: export reale di 40 minuti → 1 evento normalizzato, report con p50/p95;
+secondo export con `--append` → 0 duplicati. `make check` verde.

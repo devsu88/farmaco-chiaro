@@ -43,19 +43,50 @@ Il workflow `Production smoke` lo esegue ogni giorno alle 06:00 UTC e su
 `workflow_dispatch`. Quando `/health` espone lo SHA in modo stabile, aggiungi
 `--require-commit` al workflow.
 
-## Log drain
+## Log: percorso Hobby (attuale)
 
-1. Vercel → progetto `farmaco-chiaro` → Settings → Log Drains.
-2. Aggiungi un drain verso Better Stack (free tier) o un endpoint HTTP che
-   accetti JSON.
-3. Seleziona i log runtime, non quelli di build.
-4. Fai una richiesta alla demo e verifica che arrivi un evento
-   `"event":"http_request"`.
-5. Esporta i log in JSONL dal servizio scelto, oppure usa
-   `vercel logs <deployment> --json > logs.jsonl` per un campione.
+Vercel conserva i log runtime per **un'ora** sul piano Hobby e i Log Drains
+richiedono Pro. Il percorso attuale è un export periodico:
 
-Il codice non dipende dal drain: senza drain il report funziona su un file
-esportato.
+```bash
+# ultima finestra, in un file pronto per il report
+make export-logs EXPORT_ARGS="--since 50m --output logs.jsonl --append"
+
+# oppure solo su stdout
+make export-logs
+```
+
+`scripts/export_logs.py` chiama `vercel logs --json`, scompatta il record
+Vercel, tiene solo i nostri eventi e deduplica la sovrapposizione tra due
+export. Richiede `vercel login` in locale o `VERCEL_TOKEN` in CI.
+
+Il workflow `Log export` gira ogni 30 minuti con finestra di 50 minuti,
+esegue il report (`--max-errors 0`) e conserva `logs.jsonl` come artifact per
+30 giorni. Per una vista più lunga scarica gli artifact e concatenali:
+
+```bash
+gh run download --pattern 'logs-*' -D artifacts
+cat artifacts/*/logs.jsonl > logs-settimana.jsonl
+make report-logs LOGS=logs-settimana.jsonl
+```
+
+Limiti onesti: è polling, non streaming. Se GitHub salta le esecuzioni per più
+di un'ora, quella finestra è persa; non ci sono alert in tempo reale, solo il
+fallimento del job. Per la demo basta.
+
+## Log drain (richiede Pro)
+
+Se il progetto passa a Pro, il drain sostituisce l'export:
+
+1. Vercel → progetto → Settings → Drains → Logs.
+2. Endpoint verso Better Stack (free tier) o un endpoint HTTP tuo.
+3. Solo log runtime, non build.
+4. Verifica: fai una richiesta alla demo e cerca un evento
+   `"event":"http_request"` nel servizio.
+5. Poi puoi rimuovere il workflow `Log export`.
+
+Il drain è streaming e conserva lo storico fuori da Vercel; l'export resta
+utile come fallback.
 
 ## Report
 
@@ -85,7 +116,9 @@ Esegui il report una volta a settimana e conserva il JSON come record.
 
 ## Alert
 
-Configura nel servizio di log un alert quando:
+Su Hobby l'unico alert è il fallimento del workflow `Log export` (5xx nella
+finestra). Con un drain Pro puoi configurare nel servizio di log un alert
+quando:
 
 - compaiono 5xx;
 - il rapporto `429 / richieste` supera il 10% in un'ora;

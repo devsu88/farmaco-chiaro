@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -68,3 +69,48 @@ def test_report_vuoto_non_esplode():
     assert summary["requests"] == 0
     assert summary["p50_ms"] == 0.0
     assert summary["tokens"]["total_tokens"] == 0
+
+
+VERCEL_ENVELOPE = {
+    "type": "log",
+    "data": {
+        "timestamp": "2026-11-20T18:44:07.838Z",
+        "requestId": "req-1",
+        "deploymentId": "dpl_1",
+        "message": (
+            "2026-11-20 18:44:07,837 INFO app.observability "
+            '{"event": "http_request", "request_id": "req-1", "status": 422, '
+            '"duration_ms": 32.3}'
+        ),
+    },
+}
+
+
+def test_parse_lines_legge_l_envelope_di_vercel():
+    events = report.parse_lines([json.dumps(VERCEL_ENVELOPE)])
+
+    assert events == [
+        {
+            "event": "http_request",
+            "request_id": "req-1",
+            "status": 422,
+            "duration_ms": 32.3,
+            "ts": "2026-11-20T18:44:07.838Z",
+        }
+    ]
+
+
+def test_parse_lines_ignora_messaggi_non_strutturati_e_summary():
+    startup = {
+        "type": "log",
+        "data": {"timestamp": "t", "message": "INFO: Uvicorn running on 0.0.0.0:8000"},
+    }
+    summary = {"type": "summary", "recordsReturned": 0}
+
+    assert report.parse_lines([json.dumps(startup), json.dumps(summary)]) == []
+
+
+def test_parse_lines_deduplica_gli_export_sovrapposti():
+    lines = [json.dumps(VERCEL_ENVELOPE), json.dumps(VERCEL_ENVELOPE)]
+
+    assert len(report.parse_lines(lines)) == 1

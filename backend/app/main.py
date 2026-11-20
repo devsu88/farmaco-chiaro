@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from app import farmaci
 from app.config import FRONTEND_ORIGINS
-from app.observability import RequestLogMiddleware
+from app.observability import RequestLogMiddleware, configure_logging
 from app.routes import chat, rag, search, simplify, tts
 from app.routes import farmaci as farmaci_routes
 from app.routes import scenari as scenari_routes
@@ -18,7 +18,7 @@ from app.version import BUILD_TIME, COMMIT_SHA
 from services import vector_store
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Farmaco Chiaro API", version="0.3.0")

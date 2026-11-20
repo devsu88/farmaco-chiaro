@@ -1,0 +1,49 @@
+name: Log export
+
+# Il piano Hobby conserva i log runtime per un'ora e non offre i Log Drains
+# (richiedono Pro). Questo job esporta la finestra recente, la deduplica e la
+# conserva come artifact, così il report può coprire più di un'ora.
+#
+# Secret richiesto: VERCEL_TOKEN. Opzionali: VERCEL_PROJECT, VERCEL_SCOPE.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Export e report
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT: ${{ secrets.VERCEL_PROJECT || 'farmaco-chiaro' }}
+      VERCEL_SCOPE: ${{ secrets.VERCEL_SCOPE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Vercel token
+        id: token
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN non configurato: export saltato"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install Vercel CLI
+        if: steps.token.outputs.skip != 'true'
+        run: npm install --global vercel@latest
+      - name: Export last 50 minutes
+        if: steps.token.outputs.skip != 'true'
+        run: python3 scripts/export_logs.py --since 50m --output logs.jsonl
+      - name: Report
+        if: steps.token.outputs.skip != 'true'
+        run: python3 scripts/log_report.py logs.jsonl --max-errors 0
+      - name: Upload logs
+        if: always() && steps.token.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.run_id }}
+          path: logs.jsonl
+          retention-days: 30

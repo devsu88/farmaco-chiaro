@@ -40,3 +40,6 @@ REPORT.md
 
 # Report generato dalla pipeline
 backend/data/report.md
+
+# Export locale dei log
+logs*.jsonl

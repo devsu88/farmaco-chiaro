@@ -18,6 +18,31 @@ from starlette.requests import Request
 logger = logging.getLogger("app.observability")
 
 HOT_PATHS = {"/api/chat", "/api/simplify", "/api/tts"}
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
+STRUCTURED_LOGGERS = {"app.observability"}
+
+
+class StructuredFormatter(logging.Formatter):
+    """Riga JSON pura per i log strutturati, formato normale per gli altri.
+
+    Vercel incapsula ogni riga in un record suo: se il messaggio è già JSON,
+    chi esporta i log non deve rimuovere un prefisso per leggerlo.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        if record.name in STRUCTURED_LOGGERS:
+            message = record.getMessage()
+            if record.exc_info:
+                message += "\n" + self.formatException(record.exc_info)
+            return message
+        return super().format(record)
+
+
+def configure_logging(level: int = logging.INFO) -> None:
+    logging.basicConfig(level=level, format=LOG_FORMAT)
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(StructuredFormatter(LOG_FORMAT))
+
 
 
 def client_hash(request: Request) -> str:

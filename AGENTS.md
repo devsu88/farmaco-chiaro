@@ -28,6 +28,7 @@ a cosmetic bug.
 | `make eval` | Dense retrieval evaluation on `backend/eval/qa.jsonl` (needs Qdrant) |
 | `make smoke` | Production smoke test (no valid LLM calls) |
 | `make report-logs LOGS=file.jsonl` | Latency, status, token and cost report from JSON logs |
+| `make export-logs` | Export recent Vercel logs to JSONL (pass `EXPORT_ARGS`) |
 | `make up` / `make down` | Docker Compose with local Qdrant |
 
 Backend alone: `cd backend && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000`.
